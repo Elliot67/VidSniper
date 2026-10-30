@@ -91,7 +91,7 @@ struct EditorTimeline: View {
     private static let laneHeight: CGFloat = 30
     private static let rowSpacing: CGFloat = 2
     private static let handleWidth: CGFloat = 10
-    private static let headerWidth: CGFloat = 132
+    private static let headerWidth: CGFloat = 156
     private static let minimumMargin: CGFloat = 12
 
     private enum Lane: Hashable {
@@ -210,32 +210,65 @@ struct EditorTimeline: View {
                 .foregroundStyle(Theme.textMuted)
                 .frame(height: Self.thumbnailHeight)
 
-            ForEach(lanes, id: \.self) { lane in
-                Group {
-                    switch lane {
-                    case .systemAudio:
-                        ToggleChip(
-                            isOn: Binding(get: { document.state.systemAudio }, set: { document.setSystemAudio($0) }),
-                            title: "Son système",
-                            onIcon: "speaker.wave.2.fill",
-                            offIcon: "speaker.slash.fill"
-                        )
-                        .help("Garder ou couper le son système")
-                    case .microphone:
-                        ToggleChip(
-                            isOn: Binding(get: { document.state.microphone }, set: { document.setMicrophone($0) }),
-                            title: "Micro",
-                            onIcon: "mic.fill",
-                            offIcon: "mic.slash.fill"
-                        )
-                        .help("Garder ou couper le micro")
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: Self.rowSpacing) {
+                    ForEach(lanes, id: \.self) { lane in
+                        laneChip(lane)
+                            .focusable(false)
+                            .frame(height: Self.laneHeight)
                     }
                 }
-                .focusable(false)
-                .frame(height: Self.laneHeight)
+                Spacer(minLength: 0)
+                // Balance entre les deux lignes de son : en haut le son système ressort, en bas la voix.
+                if lanes.count == 2 {
+                    BalanceSlider(
+                        value: Binding(get: { document.balance }, set: { document.balance = $0 }),
+                        defaultValue: EditorDocument.defaultBalance,
+                        isEnabled: document.isBalanceAvailable
+                    )
+                    .frame(width: 16, height: 2 * Self.laneHeight + Self.rowSpacing)
+                    .help(balanceHelp)
+                }
             }
         }
         .frame(width: Self.headerWidth, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func laneChip(_ lane: Lane) -> some View {
+        switch lane {
+        case .systemAudio:
+            ToggleChip(
+                isOn: Binding(get: { document.state.systemAudio }, set: { document.setSystemAudio($0) }),
+                title: "Son système",
+                onIcon: "speaker.wave.2.fill",
+                offIcon: "speaker.slash.fill"
+            )
+            .help(document.isSilent(microphone: false) ? "Pas de son détecté sur le son système" : "Garder ou couper le son système")
+        case .microphone:
+            ToggleChip(
+                isOn: Binding(get: { document.state.microphone }, set: { document.setMicrophone($0) }),
+                title: "Micro",
+                onIcon: "mic.fill",
+                offIcon: "mic.slash.fill"
+            )
+            .help(document.isSilent(microphone: true) ? "Pas de son détecté sur le micro" : "Garder ou couper le micro")
+        }
+    }
+
+    private var balanceHelp: String {
+        if document.isSilent(microphone: true) { return "Balance indisponible : pas de son détecté sur le micro" }
+        if document.isSilent(microphone: false) { return "Balance indisponible : pas de son détecté sur le son système" }
+        guard document.isBalanceAvailable else { return "Balance : il faut garder les deux pistes" }
+        let offset = Int((abs(document.balance) * EditorDocument.balanceRange).rounded())
+        if offset == 0 { return "Balance : voix et son système au même niveau (double-clic : réglage par défaut)" }
+        let quieter = document.balance < 0 ? "son système" : "voix"
+        return "Balance : \(quieter) \(offset) dB plus bas (double-clic : réglage par défaut)"
+    }
+
+    /// Gain réellement appliqué à la piste (normalisation + balance), pour afficher le niveau final.
+    private func gainDecibels(for lane: Lane) -> Double {
+        document.gainDecibels(microphone: lane == .microphone)
     }
 
     // MARK: - Contenu défilant
@@ -391,6 +424,7 @@ struct EditorTimeline: View {
         let segments = document.state.segments
         let starts = document.segmentStarts
         let color = enabled ? Theme.accent : Theme.textMuted
+        let offset = gainDecibels(for: lane)
 
         return Canvas { context, size in
             guard let envelope else { return }
@@ -401,7 +435,10 @@ struct EditorTimeline: View {
                     width: segment.range.duration.seconds * scale,
                     height: size.height
                 )
-                Self.drawWaveform(envelope, in: &context, rect: rect, source: segment.range.start.seconds, scale: scale, color: color)
+                Self.drawWaveform(
+                    envelope, in: &context, rect: rect, source: segment.range.start.seconds,
+                    scale: scale, gainDecibels: offset, color: color
+                )
             }
         }
         .frame(width: width, height: Self.laneHeight)
@@ -416,6 +453,7 @@ struct EditorTimeline: View {
         rect: CGRect,
         source: Double,
         scale: Double,
+        gainDecibels: Double,
         color: Color
     ) {
         let step = 2.0
@@ -423,9 +461,11 @@ struct EditorTimeline: View {
         var bars = Path()
         var x = 0.0
         while x < rect.width {
-            let level = envelope.peak(from: source + x / scale, to: source + (x + step) / scale)
+            let peak = envelope.peak(from: source + x / scale, to: source + (x + step) / scale)
+            // Niveau final (après gain), affiché de -40 dBFS (vide) à 0 dBFS (pleine hauteur).
+            let level = max(0, 1 + (Double(peak) + gainDecibels) / 40)
             if level > 0.02 {
-                let height = CGFloat(level) * maxHeight
+                let height = CGFloat(min(1, level)) * maxHeight
                 bars.addRect(CGRect(x: rect.minX + x, y: rect.midY - height / 2, width: step - 0.5, height: height))
             }
             x += step
@@ -521,6 +561,7 @@ struct EditorTimeline: View {
     private func sourcePreview(from source: Double, width: CGFloat, scale: Double, active: Bool) -> some View {
         let envelopes = lanes.map { envelope(for: $0) }
         let enabled = lanes.map { isEnabled($0) }
+        let offsets = lanes.map { gainDecibels(for: $0) }
         let thumbnails = document.sourceThumbnails
         let interval = document.sourceThumbnailInterval
         let tileWidth = Self.thumbnailHeight * document.videoAspectRatio
@@ -540,6 +581,7 @@ struct EditorTimeline: View {
                     rect: CGRect(x: 0, y: y, width: size.width, height: Self.laneHeight),
                     source: source,
                     scale: scale,
+                    gainDecibels: offsets[lane],
                     color: enabled[lane] ? Theme.accent : Theme.textMuted
                 )
             }

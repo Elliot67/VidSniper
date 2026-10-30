@@ -26,19 +26,25 @@ struct PendingTrim: Equatable {
     let range: CMTimeRange
 }
 
-/// Niveau sonore d'une piste (crête par tranche de 1/50 s, normalisée), pour l'affichage sous la timeline.
+/// Analyse d'une piste audio : crête par tranche de 1/50 s (affichage) et niveau moyen des passages
+/// actifs (normalisation automatique).
 struct AudioEnvelope: Sendable {
     static let rate = 50.0
+    static let silence: Float = -100
 
-    let values: [Float]
+    /// Crête de chaque tranche, en dBFS.
+    let decibels: [Float]
     /// Début de la piste audio dans la vidéo source, en secondes.
     let start: Double
+    /// Niveau moyen (RMS, dBFS) des passages actifs. `nil` : piste quasi muette (micro allumé sans parler,
+    /// navigateur silencieux…), qu'on ne touche pas pour ne pas faire remonter du souffle.
+    let loudness: Double?
 
     func peak(from: Double, to: Double) -> Float {
         let first = max(0, Int((from - start) * Self.rate))
-        let last = min(values.count, max(first + 1, Int((to - start) * Self.rate)))
-        guard first < last else { return 0 }
-        return values[first..<last].max() ?? 0
+        let last = min(decibels.count, max(first + 1, Int((to - start) * Self.rate)))
+        guard first < last else { return Self.silence }
+        return decibels[first..<last].max() ?? Self.silence
     }
 }
 
@@ -49,9 +55,27 @@ struct AudioEnvelope: Sendable {
 final class EditorDocument {
     let recording: RecordingResult
     let player = AVPlayer()
+    let export: ExportModel
 
     private(set) var state: EditState
     var selectedSegment: Int?
+
+    /// Balance entre les deux pistes : -1 = la voix ressort, +1 = le son système ressort, 0 = même niveau perçu.
+    /// Mémorisée pour toutes les vidéos, hors annuler/rétablir (un curseur produirait des dizaines d'étapes).
+    var balance: Double {
+        didSet {
+            UserDefaults.standard.set(balance, forKey: "audioBalance")
+            applyGains()
+        }
+    }
+
+    static let defaultBalance = -0.5
+    /// Niveau visé pour chaque piste active (RMS des passages actifs).
+    private static let targetLoudness = -20.0
+    /// Plafond de l'amplification automatique : au-delà, on ferait surtout remonter le bruit de fond.
+    private static let maximumBoost = 18.0
+    /// Écart maximal entre les deux pistes aux extrémités de la balance.
+    static let balanceRange = 20.0
     /// Position de lecture, en secondes dans le montage.
     private(set) var currentTime: Double = 0
     private(set) var isPlaying = false
@@ -84,6 +108,11 @@ final class EditorDocument {
     @ObservationIgnored private var systemAudioTrack: AVAssetTrack?
     @ObservationIgnored private var microphoneTrack: AVAssetTrack?
     @ObservationIgnored private var audioTrackRanges: [CMPersistentTrackID: CMTimeRange] = [:]
+    /// Pistes audio de la composition courante : identifiant et source (micro ou son système).
+    @ObservationIgnored private var compositionAudioTracks: [(trackID: CMPersistentTrackID, isMicrophone: Bool)] = []
+    /// Gains lus en continu par la lecture : bouger la balance change le son sans reconstruire le mix.
+    @ObservationIgnored private let systemAudioGain = AudioGain(1)
+    @ObservationIgnored private let microphoneGain = AudioGain(1)
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var endObserver: NSObjectProtocol?
     @ObservationIgnored private var frameRequest = 0
@@ -94,8 +123,65 @@ final class EditorDocument {
 
     init(recording: RecordingResult) {
         self.recording = recording
+        export = ExportModel(recording: recording)
         asset = AVURLAsset(url: recording.url)
         state = EditState(segments: [], systemAudio: recording.hasSystemAudio, microphone: recording.hasMicrophone)
+        balance = UserDefaults.standard.object(forKey: "audioBalance") as? Double ?? Self.defaultBalance
+    }
+
+    // MARK: - Niveaux audio
+
+    /// La balance n'a de sens que si les deux pistes sont gardées et contiennent vraiment du son.
+    var isBalanceAvailable: Bool {
+        state.systemAudio && state.microphone
+            && systemAudioEnvelope?.loudness != nil && microphoneEnvelope?.loudness != nil
+    }
+
+    /// Piste analysée et quasi muette.
+    func isSilent(microphone: Bool) -> Bool {
+        let envelope = microphone ? microphoneEnvelope : systemAudioEnvelope
+        return envelope != nil && envelope?.loudness == nil
+    }
+
+    /// Gain appliqué à une piste : normalisation vers le niveau cible (piste active seulement, plafonnée),
+    /// puis atténuation de la piste mise en retrait par la balance.
+    func gainDecibels(microphone: Bool) -> Double {
+        let envelope = microphone ? microphoneEnvelope : systemAudioEnvelope
+        var gain = 0.0
+        if let loudness = envelope?.loudness {
+            gain = min(Self.maximumBoost, max(-30, Self.targetLoudness - loudness))
+        }
+        if isBalanceAvailable {
+            let offset = balance * Self.balanceRange
+            gain += microphone ? min(0, -offset) : min(0, offset)
+        }
+        return gain
+    }
+
+    private func linearGain(microphone: Bool) -> Float {
+        Float(pow(10, gainDecibels(microphone: microphone) / 20))
+    }
+
+    private var playbackAudioMix: AVAudioMix {
+        AVAudioMix.with(gains: compositionAudioTracks.map { track in
+            (track.trackID, track.isMicrophone ? microphoneGain : systemAudioGain)
+        })
+    }
+
+    private var audioVolumes: [AudioTrackVolume] {
+        compositionAudioTracks.map { track in
+            AudioTrackVolume(trackID: track.trackID, volume: linearGain(microphone: track.isMicrophone))
+        }
+    }
+
+    private func updateGainValues() {
+        systemAudioGain.value = linearGain(microphone: false)
+        microphoneGain.value = linearGain(microphone: true)
+    }
+
+    private func applyGains() {
+        updateGainValues()
+        export.volumesChanged(audioVolumes)
     }
 
     var duration: Double {
@@ -123,6 +209,7 @@ final class EditorDocument {
             videoTransform = try await video.load(.preferredTransform)
             let size = try await video.load(.naturalSize)
             if size.height > 0 { videoAspectRatio = size.width / size.height }
+            export.videoSize = size
 
             // Ordre d'écriture du Recorder : son système, puis micro.
             var remaining = audioTracks.makeIterator()
@@ -232,25 +319,31 @@ final class EditorDocument {
             let trackID = track.trackID
             let start = range.start.seconds
             Task {
-                let values = await Task.detached(priority: .utility) {
-                    await Self.readEnvelope(url: url, trackID: trackID)
+                let analysis = await Task.detached(priority: .utility) {
+                    await Self.analyze(url: url, trackID: trackID)
                 }.value
-                let envelope = AudioEnvelope(values: values, start: start)
+                let envelope = AudioEnvelope(decibels: analysis.decibels, start: start, loudness: analysis.loudness)
                 if isMicrophone {
                     microphoneEnvelope = envelope
                 } else {
                     systemAudioEnvelope = envelope
                 }
+                // Les niveaux mesurés donnent les gains de normalisation.
+                applyGains()
             }
         }
     }
 
-    /// Lit la piste en PCM mono 8 kHz et garde la crête de chaque tranche, normalisée sur la piste.
-    nonisolated private static func readEnvelope(url: URL, trackID: CMPersistentTrackID) async -> [Float] {
+    /// Lit la piste en PCM mono 8 kHz. Par tranche de 1/50 s : crête (affichage) et RMS (activité).
+    /// Une piste est active si elle dépasse -45 dBFS pendant au moins 1 s au total (moins sur une vidéo courte).
+    nonisolated private static func analyze(
+        url: URL,
+        trackID: CMPersistentTrackID
+    ) async -> (decibels: [Float], loudness: Double?) {
         let asset = AVURLAsset(url: url)
         guard let track = try? await asset.loadTrack(withTrackID: trackID),
               let reader = try? AVAssetReader(asset: asset)
-        else { return [] }
+        else { return ([], nil) }
 
         let sampleRate = 8_000
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
@@ -262,13 +355,16 @@ final class EditorDocument {
             AVSampleRateKey: sampleRate,
             AVNumberOfChannelsKey: 1,
         ])
-        guard reader.canAdd(output) else { return [] }
+        guard reader.canAdd(output) else { return ([], nil) }
         reader.add(output)
-        guard reader.startReading() else { return [] }
+        guard reader.startReading() else { return ([], nil) }
 
         let samplesPerBucket = Int(Double(sampleRate) / AudioEnvelope.rate)
-        var values: [Float] = []
+        let activityThreshold = -45.0
+        var decibels: [Float] = []
+        var activePower: [Double] = []
         var peak: Float = 0
+        var sumOfSquares: Double = 0
         var count = 0
         while let sampleBuffer = output.copyNextSampleBuffer() {
             guard let block = CMSampleBufferGetDataBuffer(sampleBuffer) else { continue }
@@ -279,25 +375,31 @@ final class EditorDocument {
             }
             for sample in samples {
                 peak = max(peak, abs(sample))
+                sumOfSquares += Double(sample * sample)
                 count += 1
                 if count == samplesPerBucket {
-                    values.append(peak)
+                    decibels.append(peak > 0 ? max(AudioEnvelope.silence, 20 * log10(peak)) : AudioEnvelope.silence)
+                    let power = sumOfSquares / Double(count)
+                    if power > 0, 10 * log10(power) > activityThreshold {
+                        activePower.append(power)
+                    }
                     peak = 0
+                    sumOfSquares = 0
                     count = 0
                 }
             }
         }
 
-        // Normalisation sur la piste, puis échelle en décibels (-40 dB → 0) : une voix peu forte reste bien visible.
-        guard let maximum = values.max(), maximum > 0.001 else { return values.map { _ in 0 } }
-        return values.map { value in
-            let normalized = min(1, value / maximum)
-            guard normalized > 0 else { return 0 }
-            return max(0, 1 + 20 * log10(normalized) / 40)
-        }
+        let totalSeconds = Double(decibels.count) / AudioEnvelope.rate
+        let activeSeconds = Double(activePower.count) / AudioEnvelope.rate
+        let minimumActive = min(1, max(0.3, totalSeconds * 0.03))
+        guard activeSeconds >= minimumActive else { return (decibels, nil) }
+        let meanPower = activePower.reduce(0, +) / Double(activePower.count)
+        return (decibels, 10 * log10(meanPower))
     }
 
     func close() {
+        export.cancel()
         player.pause()
         if let timeObserver { player.removeTimeObserver(timeObserver) }
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
@@ -521,10 +623,43 @@ final class EditorDocument {
             cursor = cursor + segment.range.duration
         }
 
+        compositionAudioTracks = audioTracks.compactMap { source, track in
+            track.map { ($0.trackID, source === microphoneTrack) }
+        }
+        // Couper une piste peut rendre la balance inapplicable : les gains de l'autre piste changent.
+        updateGainValues()
+
         self.composition = composition
-        player.replaceCurrentItem(with: AVPlayerItem(asset: composition))
+        let item = AVPlayerItem(asset: composition)
+        item.audioMix = playbackAudioMix
+        player.replaceCurrentItem(with: item)
         seek(to: time)
         if wasPlaying { player.play() }
+
+        // L'export travaille sur une copie figée, indépendante des prochaines modifications.
+        if let snapshot = composition.copy() as? AVComposition {
+            export.compositionChanged(
+                snapshot,
+                signature: editSignature,
+                duration: duration,
+                hasAudio: !audioSources.isEmpty,
+                volumes: audioVolumes
+            )
+        }
+    }
+
+    /// Description textuelle du montage (segments à la milliseconde + pistes gardées), clé du cache d'export.
+    private var editSignature: String {
+        let segments = state.segments
+            .map { String(format: "%.3f-%.3f", $0.range.start.seconds, $0.range.end.seconds) }
+            .joined(separator: ",")
+        return "\(segments)|s\(state.systemAudio ? 1 : 0)m\(state.microphone ? 1 : 0)"
+    }
+
+    /// Vignette du début du montage (aperçu de la vidéo à glisser).
+    var firstFrameThumbnail: CGImage? {
+        guard let first = state.segments.first else { return nil }
+        return Self.thumbnail(in: sourceThumbnails, interval: sourceThumbnailInterval, at: first.range.start.seconds)
     }
 
     private func cmTime(_ seconds: Double) -> CMTime {

@@ -11,8 +11,15 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 0 | Projet XcodeGen, signature, permissions, fenêtre principale, `Theme.swift` | Fait |
 | 1 | Raccourci global, sélecteur de zone, capture 3 pistes, mini barre, déplacement de zone en cours d'enregistrement | Fait |
 | 2 | Éditeur : lecture, trim, cuts, pistes audio, raccourcis clavier, annuler, timeline zoomable | Fait |
-| 3 | Export : réglages, estimation, glisser, copier, enregistrer | En cours |
+| 3 | Export : réglages, estimation, glisser, copier, enregistrer, cache ; niveaux audio automatiques + balance | Fait |
 | 4 (bonus) | Mise en évidence des clics, rectangle/ellipse sur une plage de temps, remplacement d'une piste audio | À faire |
+| 5 (plus tard, à la fin) | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur | À faire |
+
+### Notes pour l'import de vidéo (phase 5)
+
+- Ouvrir un fichier (bouton dans la fenêtre principale, glisser-déposer sur l'icône du Dock ou sur la fenêtre, ⌘O).
+- L'éditeur suppose aujourd'hui un `.mov` VidSniper : pistes audio dans l'ordre son système puis micro, une piste vidéo. Pour un fichier importé : pistes audio quelconques (0, 1 ou plusieurs), libellés génériques ("Audio 1", "Audio 2"…), éventuelle rotation (`preferredTransform`), fréquence d'images variable.
+- Le fichier importé ne doit jamais être modifié ni supprimé par la purge des 24 h (seul l'export va dans le cache).
 
 ## Le déroulé
 
@@ -94,6 +101,13 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 - Les pastilles ont une icône de largeur fixe (les variantes barrées sont plus larges et faisaient sauter l'UI).
 - Timeline :
   - **Colonne de libellés à gauche**, hors de la zone défilante : "Vidéo", puis une pastille par piste audio (Son système, Micro) qui sert aussi à garder ou couper la piste. Une piste coupée est grisée sur toute sa ligne.
+  - **Niveaux audio automatiques + balance** (remplace les curseurs de volume par piste, à refaire à chaque vidéo) :
+    - **Normalisation** : à l'ouverture, chaque piste est analysée (RMS par tranche de 1/50 s). Une piste est **active** si elle dépasse -45 dBFS pendant au moins 1 s au total (0,3 s à 1 s sur une vidéo courte, 3 % de la durée). Le niveau moyen des passages actifs est ramené à **-20 dBFS**, avec un gain plafonné à **+18 dB** (et -30 dB).
+    - **Pistes sans son** (micro allumé sans parler, navigateur silencieux) : jamais amplifiées ni touchées, pour ne pas faire remonter le souffle. La pastille l'indique dans sa bulle d'aide ("Pas de son détecté sur le micro").
+    - **Balance** : un **curseur vertical entre les deux lignes de son**, dans la colonne de gauche. En haut, le son système ressort ; en bas, la voix ressort ; au milieu (repère, aimanté), même niveau perçu. Écart maximal ±20 dB : la piste en retrait est atténuée, l'autre reste au niveau cible. Par défaut : la voix ressort, son système 10 dB plus bas. Double-clic : réglage par défaut. Mémorisée pour toutes les vidéos, hors annuler/rétablir.
+    - La balance est grisée (avec la raison en bulle d'aide) si une piste est coupée ou sans son : la piste restante est simplement normalisée.
+    - Les lignes de niveau sonore affichent le **niveau final** (après normalisation et balance), de -40 dBFS (vide) à 0 dBFS (pleine hauteur).
+    - Technique : `setVolume` d'`AVAudioMix` est limité à 100 %, le gain passe donc par un traitement audio maison (`MTAudioProcessingTap`, `AudioGain.swift`) qui multiplie les échantillons et les écrête à ±1. À la lecture, il lit le gain en continu (la balance s'entend en direct, sans reconstruire le mix). À l'export, le même traitement est appliqué au mix lu par `AVAssetReaderAudioMixOutput` (à vérifier à l'écoute du MP4).
   - **Défilement horizontal et zoom** : par défaut, tout le montage tient dans la largeur, sauf s'il devient trop serré (minimum 30 pt/s, on défile alors). Pendant la lecture, la timeline suit la tête de lecture.
     - Trackpad au-dessus de la timeline : **pincer pour zoomer** (le point sous les doigts reste fixe), **glisser verticalement à deux doigts** (ou molette) pour défiler horizontalement. Le glisser horizontal marche aussi. Ces gestes sont interceptés en AppKit (moniteur local), car la ScrollView SwiftUI les garde pour elle.
     - Aussi : boutons −/+ et ⌘+ / ⌘−, où c'est la tête de lecture qui reste fixe.
@@ -123,19 +137,27 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 | Début / Fin | Aller au début / à la fin |
 | ⌘Z / ⌘⇧Z | Annuler / rétablir |
 | ⌘+ / ⌘− | Zoomer / dézoomer la timeline |
-| ⌘C | Copier la vidéo exportée (phase 3) |
+| ⌘C | Copier la vidéo exportée |
+| ⌘S | Enregistrer une copie de la vidéo exportée |
 
 Les lettres sont lues d'après le caractère tapé et non la position de la touche, pour fonctionner en AZERTY.
 
-### 4. Export (phase 3)
+### 4. Export (panneau en bas de l'éditeur)
 
-- Dimensions : 100 % / 75 % / 50 %. Qualité : Haute / Moyenne / Légère (débit cible).
-- **Poids estimé en direct** (débit × durée).
-- MP4 H.264 généré en arrière-plan à chaque modification (debounce). Limite H.264 : 4096 px de large, à réduire automatiquement pour les écrans 5K.
-- **Glisser** depuis une vignette, **Copier** (⌘C, `NSPasteboard` avec l'URL du fichier, comme le Finder), **Enregistrer…** (`NSSavePanel`).
+- **Taille** : 100 % / 75 % / 50 %. **Qualité** : Haute / Moyenne / Légère (0,10 / 0,06 / 0,035 bit par pixel et par image). Réglages mémorisés d'un export à l'autre.
+- Résumé : dimensions finales (ex. "1920 × 1080 · MP4"), puis **"Estimation : ≈ X Mo"** pendant l'export (débit × durée), remplacé par le **poids réel** une fois le fichier prêt.
+- MP4 H.264 (High) + AAC 128 kb/s stéréo, 30 i/s, optimisé pour le streaming. Les pistes audio gardées sont mixées en une seule piste : couper une seule des deux pistes ne change donc pas le poids, et couper les deux ne fait gagner que ~16 Ko/s (le son pèse très peu face à la vidéo).
+- Vitesse d'export : les images sont composées directement à la taille d'export (pas en pleine résolution puis réduites), et l'encodage se fait sans images B. Le gain est surtout visible à 75 % et 50 %. Limite du H.264 matériel : 4096 × 2304, la taille est réduite automatiquement au-delà (écrans 5K).
+- **Export automatique en arrière-plan** à chaque modification du montage ou des réglages, 0,5 s après la dernière modification. Un nouvel export annule le précédent. Le fichier final est remplacé d'un coup (jamais à moitié écrit).
+- Le fichier porte le nom de l'enregistrement (`VidSniper 2026-10-31 à 10.12.03.mp4`), c'est celui que voient les destinataires. Il est rangé dans `~/Library/Caches/VidSniper/Exports/<clé>/`, purgé après 24 h comme les enregistrements.
+- **Cache des exports** : chaque combinaison montage + taille + qualité + volumes garde son fichier pendant la session. Revenir à un réglage déjà essayé (pour comparer les poids, par exemple) rend la vidéo disponible immédiatement, sans réexporter.
+- **Vignette à glisser** (début du montage) : barre de progression pendant l'export, badge "Glisser" quand c'est prêt. On la glisse directement dans Slack, Jira, un mail…
+- **Copier** (bouton ou ⌘C) : met le fichier dans le presse-papier comme "Copier" dans le Finder (`NSPasteboard` avec l'URL du fichier). Le bouton affiche "Copiée" pendant 2 s (icônes dans un cadre de taille fixe, largeur et hauteur, pour éviter le saut). Validé dans Slack.
+- **Enregistrer…** (bouton ou ⌘S) : `NSSavePanel` pour garder une copie où l'on veut.
 
 ## Points à vérifier
 
-- Que le collage dans Slack fonctionne (sinon, glisser-déposer).
+- ~~Que le collage dans Slack fonctionne~~ : validé, ainsi que le glisser-déposer.
+- ~~Que le gain audio (> 100 %) soit appliqué à l'export~~ : validé.
 - Que l'app reste bien sans fenêtre quand elle est lancée à l'ouverture de session.
 - Plus tard : installer l'app dans `/Applications` (le lancement à l'ouverture de session pointe vers l'emplacement actuel de l'app).

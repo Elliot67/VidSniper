@@ -89,6 +89,32 @@ struct ToggleChip: View {
     }
 }
 
+/// Option d'un choix exclusif (taille, qualité...), en pastille.
+struct ChoiceChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 12))
+                .foregroundStyle(isSelected ? Color.white : Theme.textNormal)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                        .fill(isSelected ? Theme.accent : Theme.backgroundPrimary)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                        .stroke(isSelected ? Theme.accent : Theme.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// Bouton rond avec une icône seule.
 struct IconButtonStyle: ButtonStyle {
     var tint: Color = Theme.textNormal

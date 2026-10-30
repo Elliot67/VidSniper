@@ -33,6 +33,7 @@ struct EditorView: View {
                 controls
                 EditorTimeline(document: document)
                 shortcutsHint
+                ExportBar(export: document.export, thumbnail: document.firstFrameThumbnail)
             }
             .padding(Theme.spacing * 1.5)
             .background(Theme.backgroundPrimary)
@@ -113,7 +114,7 @@ struct EditorView: View {
     }
 
     private var shortcutsHint: some View {
-        Text("Espace lecture · X couper · ⌫ supprimer le segment · ← → image par image (⇧ 1 s) · ⌘Z annuler · ⌘+ ⌘− zoom")
+        Text("Espace lecture · X couper · ⌫ supprimer le segment · ← → image par image (⇧ 1 s) · ⌘Z annuler · ⌘+ ⌘− zoom · ⌘C copier · ⌘S enregistrer")
             .font(.system(size: 11))
             .foregroundStyle(Theme.textMuted)
             .frame(maxWidth: .infinity, alignment: .leading)

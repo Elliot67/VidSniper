@@ -15,7 +15,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
     init(recording: RecordingResult) {
         document = EditorDocument(recording: recording)
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
+            contentRect: NSRect(x: 0, y: 0, width: 1000, height: 780),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -24,7 +24,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
 
         window.title = recording.url.deletingPathExtension().lastPathComponent
         window.isReleasedWhenClosed = false
-        window.contentMinSize = NSSize(width: 720, height: 520)
+        window.contentMinSize = NSSize(width: 860, height: 640)
         window.contentView = NSHostingView(rootView: EditorView(document: document))
         window.delegate = self
         window.center()
@@ -87,6 +87,10 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
             document.zoom(by: 1.5)
         case (_, "-", [.command]):
             document.zoom(by: 1 / 1.5)
+        case (_, "c", [.command]):
+            document.export.copyToPasteboard()
+        case (_, "s", [.command]):
+            document.export.saveAs()
         default:
             return false
         }
