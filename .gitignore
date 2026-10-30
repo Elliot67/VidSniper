@@ -1,0 +1,5 @@
+.DS_Store
+/build/
+*.xcodeproj
+xcuserdata/
+.claude/settings.local.json

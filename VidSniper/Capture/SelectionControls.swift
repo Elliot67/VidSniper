@@ -1,0 +1,110 @@
+import Observation
+import SwiftUI
+
+/// État de la sélection affiché par le panneau (mis à jour par SelectionView).
+@MainActor
+@Observable
+final class SelectionControlsState {
+    var hasSelection = false
+    var isFullScreen = false
+}
+
+/// Panneau du sélecteur : plein écran, sources audio, Annuler, Enregistrer.
+struct SelectionControls: View {
+    @Bindable var options: SelectionOptions
+    let state: SelectionControlsState
+    let microphoneAvailable: Bool
+    let onToggleFullScreen: () -> Void
+    let onRecord: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ToggleChip(
+                isOn: Binding(get: { state.isFullScreen }, set: { _ in onToggleFullScreen() }),
+                title: state.isFullScreen ? "Quitter le plein écran" : "Plein écran",
+                onIcon: "arrow.down.right.and.arrow.up.left",
+                offIcon: "arrow.up.left.and.arrow.down.right"
+            )
+            .help(state.isFullScreen ? "Revenir à la zone précédente" : "Enregistrer tout l'écran")
+
+            separator
+
+            ToggleChip(
+                isOn: Binding(
+                    get: { options.microphone && microphoneAvailable },
+                    set: { options.microphone = $0 }
+                ),
+                title: "Micro",
+                onIcon: "mic.fill",
+                offIcon: "mic.slash.fill"
+            )
+            .disabled(!microphoneAvailable)
+            .help(microphoneAvailable ? "Enregistrer le micro" : "Micro non autorisé (voir la fenêtre principale)")
+
+            ToggleChip(
+                isOn: $options.systemAudio,
+                title: "Son système",
+                onIcon: "speaker.wave.2.fill",
+                offIcon: "speaker.slash.fill"
+            )
+
+            separator
+
+            Button("Annuler", action: onCancel)
+                .buttonStyle(SecondaryButtonStyle())
+
+            Button(action: onRecord) {
+                Label("Enregistrer", systemImage: "record.circle")
+            }
+            .buttonStyle(AccentButtonStyle())
+            .disabled(!state.hasSelection)
+        }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cornerRadius + 2)
+                .fill(Theme.backgroundPrimary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cornerRadius + 2)
+                .stroke(Theme.border, lineWidth: 1)
+        )
+        .fixedSize()
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(Theme.border)
+            .frame(width: 1, height: 20)
+    }
+}
+
+private struct ToggleChip: View {
+    @Binding var isOn: Bool
+    let title: String
+    let onIcon: String
+    let offIcon: String
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            Label(title, systemImage: isOn ? onIcon : offIcon)
+                .font(.system(size: 12))
+                .foregroundStyle(isOn ? Theme.accent : Theme.textMuted)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                        .fill(isOn ? Theme.accent.opacity(0.12) : Theme.backgroundSecondary)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                        .stroke(isOn ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: 1)
+                )
+                .opacity(isEnabled ? 1 : 0.5)
+        }
+        .buttonStyle(.plain)
+    }
+}

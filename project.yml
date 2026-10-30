@@ -1,0 +1,41 @@
+name: VidSniper
+
+options:
+  bundleIdPrefix: com.elintz
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    DEVELOPMENT_TEAM: T9WD2H73Y6
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+
+targets:
+  VidSniper:
+    type: application
+    platform: macOS
+    sources:
+      - path: VidSniper
+    entitlements:
+      path: VidSniper/Resources/VidSniper.entitlements
+      properties:
+        com.apple.security.device.audio-input: true
+    info:
+      path: VidSniper/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: VidSniper
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: "15.0"
+        NSMicrophoneUsageDescription: VidSniper enregistre le micro pendant tes captures d'écran.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.elintz.VidSniper
+        GENERATE_INFOPLIST_FILE: NO
