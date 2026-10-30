@@ -25,6 +25,7 @@ final class AppCoordinator {
     @ObservationIgnored private var overlay: SelectionOverlay?
     @ObservationIgnored private var recorder: Recorder?
     @ObservationIgnored private var recordingBar: RecordingBarController?
+    @ObservationIgnored private var editors: [EditorWindowController] = []
 
     static let shortcutLabel = "⌘⇧8"
 
@@ -144,17 +145,39 @@ final class AppCoordinator {
         state = .finishing
         recordingBar?.close()
         recordingBar = nil
+        // Activation tout de suite, pendant que macOS considère encore l'action (clic ou raccourci) comme récente :
+        // l'éditeur, ouvert après la finalisation du fichier, passe ainsi au premier plan.
+        NSApp.activate()
 
         Task {
             do {
-                lastRecording = try await recorder.stop()
+                let recording = try await recorder.stop()
+                lastRecording = recording
+                self.recorder = nil
+                state = .idle
+                openEditor(recording)
             } catch {
                 lastError = "L'enregistrement a échoué : \(error.localizedDescription)"
+                self.recorder = nil
+                state = .idle
+                showMainWindow()
             }
-            self.recorder = nil
-            state = .idle
-            showMainWindow()
         }
+    }
+
+    // MARK: - Éditeur
+
+    func openEditor(_ recording: RecordingResult) {
+        if let existing = editors.first(where: { $0.document.recording.url == recording.url }) {
+            existing.show()
+            return
+        }
+        let editor = EditorWindowController(recording: recording)
+        editor.onClose = { [weak self, weak editor] in
+            self?.editors.removeAll { $0 === editor }
+        }
+        editors.append(editor)
+        editor.show()
     }
 }
 

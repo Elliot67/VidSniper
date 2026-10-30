@@ -53,9 +53,46 @@ struct AccentButtonStyle: ButtonStyle {
     }
 }
 
+/// Interrupteur sous forme de pastille avec icône (sources audio, plein écran...).
+struct ToggleChip: View {
+    @Binding var isOn: Bool
+    let title: String
+    let onIcon: String
+    let offIcon: String
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            HStack(spacing: 5) {
+                // Largeur fixe : les variantes "barrées" des icônes sont plus larges, ce qui faisait sauter la pastille.
+                Image(systemName: isOn ? onIcon : offIcon)
+                    .frame(width: 16)
+                Text(title)
+            }
+                .font(.system(size: 12))
+                .foregroundStyle(isOn ? Theme.accent : Theme.textMuted)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                        .fill(isOn ? Theme.accent.opacity(0.12) : Theme.backgroundSecondary)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                        .stroke(isOn ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: 1)
+                )
+                .opacity(isEnabled ? 1 : 0.5)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// Bouton rond avec une icône seule.
 struct IconButtonStyle: ButtonStyle {
     var tint: Color = Theme.textNormal
+    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -66,11 +103,14 @@ struct IconButtonStyle: ButtonStyle {
                 Circle().fill(configuration.isPressed ? Theme.border : Theme.backgroundSecondary)
             )
             .contentShape(Circle())
+            .opacity(isEnabled ? 1 : 0.35)
     }
 }
 
 /// Bouton secondaire, fond discret et bordure fine.
 struct SecondaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 12))
@@ -85,5 +125,6 @@ struct SecondaryButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)
                     .stroke(Theme.border, lineWidth: 1)
             )
+            .opacity(isEnabled ? 1 : 0.4)
     }
 }

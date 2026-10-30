@@ -78,33 +78,3 @@ struct SelectionControls: View {
             .frame(width: 1, height: 20)
     }
 }
-
-private struct ToggleChip: View {
-    @Binding var isOn: Bool
-    let title: String
-    let onIcon: String
-    let offIcon: String
-    @Environment(\.isEnabled) private var isEnabled
-
-    var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
-            Label(title, systemImage: isOn ? onIcon : offIcon)
-                .font(.system(size: 12))
-                .foregroundStyle(isOn ? Theme.accent : Theme.textMuted)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                        .fill(isOn ? Theme.accent.opacity(0.12) : Theme.backgroundSecondary)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                        .stroke(isOn ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: 1)
-                )
-                .opacity(isEnabled ? 1 : 0.5)
-        }
-        .buttonStyle(.plain)
-    }
-}

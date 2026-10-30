@@ -10,8 +10,8 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 |---|---|---|
 | 0 | Projet XcodeGen, signature, permissions, fenêtre principale, `Theme.swift` | Fait |
 | 1 | Raccourci global, sélecteur de zone, capture 3 pistes, mini barre, déplacement de zone en cours d'enregistrement | Fait |
-| 2 | Éditeur : lecture, trim, cuts, pistes audio, raccourcis clavier, annuler | En cours |
-| 3 | Export : réglages, estimation, glisser, copier, enregistrer | À faire |
+| 2 | Éditeur : lecture, trim, cuts, pistes audio, raccourcis clavier, annuler, timeline zoomable | Fait |
+| 3 | Export : réglages, estimation, glisser, copier, enregistrer | En cours |
 | 4 (bonus) | Mise en évidence des clics, rectangle/ellipse sur une plage de temps, remplacement d'une piste audio | À faire |
 
 ## Le déroulé
@@ -87,10 +87,30 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 
 ### 3. Éditeur (s'ouvre automatiquement à la fin)
 
-- Lecteur vidéo (`AVPlayerLayer`, sans les contrôles intégrés d'`AVPlayerView` qui interceptent le clavier) et timeline avec vignettes.
-- Le montage est une liste de segments de la vidéo source. Découpe à la tête de lecture, suppression du segment sélectionné, rognage des bords de chaque segment par poignées.
-- Une case par piste audio (Micro, Son système) pour la garder ou la couper.
-- Non destructif : une `AVMutableComposition` reconstruite à chaque modification.
+- S'ouvre à l'arrêt de l'enregistrement, **au premier plan** : l'app est activée dès le clic sur Stop ou le raccourci (macOS refuse une activation trop tardive après l'action de l'utilisateur). La fenêtre principale garde un bouton "Ouvrir l'éditeur" pour le dernier enregistrement, si on a fermé l'éditeur par erreur.
+- Lecteur vidéo (`AVPlayerLayer`, sans les contrôles intégrés d'`AVPlayerView` qui interceptent le clavier).
+- Barre de contrôles : lecture/pause, temps courant / durée du montage, Couper, Supprimer, Annuler, Rétablir, zoom (−, +, Ajuster). Les boutons ne prennent jamais le focus clavier.
+- **Les boutons désactivés sont grisés** (Supprimer sans sélection ou sur le dernier clip, Annuler/Rétablir sans historique, dézoom au minimum).
+- Les pastilles ont une icône de largeur fixe (les variantes barrées sont plus larges et faisaient sauter l'UI).
+- Timeline :
+  - **Colonne de libellés à gauche**, hors de la zone défilante : "Vidéo", puis une pastille par piste audio (Son système, Micro) qui sert aussi à garder ou couper la piste. Une piste coupée est grisée sur toute sa ligne.
+  - **Défilement horizontal et zoom** : par défaut, tout le montage tient dans la largeur, sauf s'il devient trop serré (minimum 30 pt/s, on défile alors). Pendant la lecture, la timeline suit la tête de lecture.
+    - Trackpad au-dessus de la timeline : **pincer pour zoomer** (le point sous les doigts reste fixe), **glisser verticalement à deux doigts** (ou molette) pour défiler horizontalement. Le glisser horizontal marche aussi. Ces gestes sont interceptés en AppKit (moniteur local), car la ScrollView SwiftUI les garde pour elle.
+    - Aussi : boutons −/+ et ⌘+ / ⌘−, où c'est la tête de lecture qui reste fixe.
+    - **Ajuster** : fait tenir le montage dans la largeur **et** défile jusqu'à son début, même si l'échelle ne change pas (sinon on pouvait rester dans la marge vide réservée aux parties rognées).
+  - **Règle de temps** en haut (graduations adaptées au zoom).
+  - **Marges aux extrémités** : avant et après le montage, la timeline réserve assez de place pour rallonger n'importe quel clip rogné, y compris un clip du milieu dont la partie disponible dépasse le début ou la fin de la timeline. On peut ainsi toujours défiler jusqu'à la limite.
+  - **Vignettes en tuiles de taille fixe**, tirées d'un cache de la source (une image toutes les 0,5 s, 400 max) : elles restent nettes au zoom, sans étirement ni régénération.
+  - **Une ligne de niveau sonore par piste** (son système, puis micro), pour repérer où couper. Elles suivent le montage. Lecture seule. Calcul : crête par tranche de 1/50 s, normalisée par piste, en décibels (-40 dB → vide) pour que les sons faibles se voient.
+  - Clic ou glisser sur la timeline : déplace la tête de lecture et sélectionne le segment cliqué.
+  - Chaque segment a deux poignées de rognage, qui couvrent aussi les lignes de son. Un segment issu d'une découpe ne peut pas déborder sur la partie voisine (bornes mémorisées à la découpe). Durée minimale 0,1 s.
+  - **Rognage en aperçu** : pendant le glisser, le clip garde sa taille et sa position (les autres clips ne bougent pas). Le rognage ne s'applique qu'au relâchement. On peut rogner en plusieurs fois.
+    - Raccourcir : la partie retirée est assombrie, la vidéo montre l'image du nouveau bord.
+    - Rallonger : toute la source disponible jusqu'à la limite s'affiche en fond, opaque et en gris (vignettes + son), par-dessus les clips voisins. La portion sélectionnée en tirant la poignée passe en couleur. Un trait en pointillés marque la limite, et la vidéo montre l'image source du nouveau bord.
+    - Pendant un rognage, les autres clips sont assombris.
+    - **Défilement automatique** : si la souris approche (40 pt) ou dépasse un bord de la timeline pendant un rognage, la timeline défile dans ce sens, d'autant plus vite que la souris va loin. La poignée reste sous la souris.
+- Le montage est une liste de segments de la vidéo source. Pistes audio : gardées ou coupées entièrement.
+- Non destructif : une `AVMutableComposition` reconstruite à chaque modification. Annuler / rétablir sur tout l'état (segments + pistes audio).
 
 **Raccourcis clavier** (gérés au niveau de la fenêtre, quel que soit le focus) :
 
@@ -102,6 +122,7 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 | ← / → | Reculer / avancer d'une image (⇧ pour 1 s) |
 | Début / Fin | Aller au début / à la fin |
 | ⌘Z / ⌘⇧Z | Annuler / rétablir |
+| ⌘+ / ⌘− | Zoomer / dézoomer la timeline |
 | ⌘C | Copier la vidéo exportée (phase 3) |
 
 Les lettres sont lues d'après le caractère tapé et non la position de la touche, pour fonctionner en AZERTY.

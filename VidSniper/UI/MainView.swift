@@ -49,7 +49,7 @@ struct MainView: View {
         }
     }
 
-    // Temporaire (phase 1) : sera remplacé par l'éditeur.
+    /// Permet de rouvrir l'éditeur si on l'a fermé par erreur.
     private func lastRecordingPanel(_ recording: RecordingResult) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
@@ -61,8 +61,8 @@ struct MainView: View {
                     .foregroundStyle(Theme.textMuted)
             }
             Spacer()
-            Button("Afficher dans le Finder") {
-                NSWorkspace.shared.activateFileViewerSelecting([recording.url])
+            Button("Ouvrir l'éditeur") {
+                coordinator.openEditor(recording)
             }
             .buttonStyle(SecondaryButtonStyle())
         }
