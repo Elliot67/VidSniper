@@ -274,6 +274,8 @@ private struct ActionTile: View {
             .contentShape(RoundedRectangle(cornerRadius: 10))
         }
         .buttonStyle(.plain)
+        // Sinon la première tuile prend le focus clavier à l'ouverture de la fenêtre (contour bleu).
+        .focusable(false)
         .opacity(isEnabled ? 1 : 0.45)
         .onHover { isHovered = $0 }
     }
