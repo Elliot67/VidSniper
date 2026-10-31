@@ -49,7 +49,15 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 - `xcodegen` (génère le projet), puis `xcodebuild` (build Debug dans `build/Debug/VidSniper.app`).
 - Relancer l'app : `pkill -x VidSniper; sleep 1; open build/Debug/VidSniper.app` (le `sleep` évite l'erreur -600).
 - Prérequis signature : le certificat intermédiaire Apple **WWDR G3** (https://www.apple.com/certificateauthority/) doit être installé, sinon le certificat de dev est considéré invalide.
-- **Installation** : `./scripts/install.sh` (à lancer soi-même, hors sandbox) compile en Release, remplace `/Applications/VidSniper.app` et la lance. Même signature que le build de dev : les permissions restent accordées.
+- **Installation** : `./scripts/install.sh` (à lancer soi-même, hors sandbox) compile en Release, remplace `/Applications/VidSniper.app` et la lance. Même signature que le build de dev : les permissions restent accordées. Il **supprime ensuite les copies de build** (`build/Debug` et le build Release), après les avoir désenregistrées de Launch Services : une seule VidSniper sur le Mac (pas de conflit sur le raccourci global, pas de doublon dans Spotlight).
+
+### Distribution (gratuite, sans App Store)
+
+- **Pas de compte Apple Developer payant** : l'app est signée avec le certificat gratuit "Apple Development" (signature stable d'une version à l'autre, donc les permissions sont gardées après une mise à jour), mais **pas notarisée**. macOS bloque son premier lancement chez les autres : "Ouvrir quand même" dans Réglages Système > Confidentialité et sécurité, ou `xattr -dr com.apple.quarantine /Applications/VidSniper.app`.
+- **Téléchargement** : `./scripts/release.sh` compile en Release (Apple Silicon + Intel), vérifie la signature, zippe l'app avec `ditto` dans `dist/VidSniper-<version>.zip` (ignoré par git) et met à jour la recette Homebrew. `--publish` crée en plus la Release GitHub (`gh`) et pousse la recette. Version : `CFBundleShortVersionString` dans `project.yml`, à augmenter avant chaque publication.
+- **Homebrew** : le tap est **dans le dépôt de l'app** (dossier `Casks/` à la racine, recette `Casks/vidsniper.rb`). Installation en deux commandes : `brew tap elliot67/vidsniper https://github.com/Elliot67/vid-sniper` puis `brew install --cask vidsniper`. La recette retire la quarantaine après l'installation (`postflight`), donc pas de blocage au premier lancement. Le dépôt officiel de Homebrew n'est pas possible : il exige des apps notarisées.
+- Le dépôt GitHub doit être **public** pour que le téléchargement et le tap fonctionnent. Nom supposé : `Elliot67/vid-sniper` (variable `REPO` du script, et URLs de la recette et du README à ajuster si besoin).
+- `README.md` : présentation, installation (téléchargement, Homebrew, premier lancement), développement.
 - **Icône** : générée par `scripts/make-icon.swift` (fond sombre façon Obsidian, coins de sélection, viseur violet, point rouge d'enregistrement), qui écrit toutes les tailles dans `VidSniper/Resources/Assets.xcassets/AppIcon.appiconset`. À relancer seulement pour modifier l'icône.
 
 ## UI : style Obsidian
