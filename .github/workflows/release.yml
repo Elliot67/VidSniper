@@ -1,0 +1,52 @@
+# Publie une version de VidSniper quand un tag v* est poussé :
+#   git tag v0.2.0 && git push origin v0.2.0
+# Build Release universel (Apple Silicon + Intel), signature ad hoc (pas de certificat dans le CI : macOS
+# redemande les permissions écran et micro après chaque mise à jour), Release GitHub avec le zip, puis
+# recette Homebrew (Casks/vidsniper.rb) mise à jour sur main.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Outils
+        run: brew install xcodegen
+
+      - name: Build et archive
+        env:
+          VERSION: ${{ github.ref_name }}
+          SIGN_IDENTITY: "-"
+        run: VERSION="${VERSION#v}" ./scripts/release.sh
+
+      - name: Release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" "dist/VidSniper-$version.zip" \
+              --title "VidSniper $version" \
+              --notes "Téléchargement direct ou Homebrew : voir le README (premier lancement à débloquer une fois)." \
+              --generate-notes
+
+      # Le tag pointe sur un commit détaché : la recette est committée sur main à part.
+      - name: Recette Homebrew
+        run: |
+          cp Casks/vidsniper.rb "$RUNNER_TEMP/vidsniper.rb"
+          git checkout -- .
+          git fetch origin main
+          git checkout -B main origin/main
+          cp "$RUNNER_TEMP/vidsniper.rb" Casks/vidsniper.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/vidsniper.rb
+          git commit -m "Homebrew : VidSniper ${GITHUB_REF_NAME#v}"
+          git push origin main

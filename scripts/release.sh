@@ -7,7 +7,10 @@
 #   ./scripts/release.sh --publish  publie aussi la Release GitHub (gh) et pousse la recette
 #
 # La version vient de CFBundleShortVersionString dans project.yml : l'augmenter avant chaque publication.
-# Dépôt GitHub : REPO=<compte>/<dépôt> pour changer celui par défaut.
+# Variables :
+#   REPO=<compte>/<dépôt>  dépôt GitHub, si ce n'est pas celui par défaut
+#   VERSION=1.2.3          impose la version (écrite dans project.yml) ; utilisé par la GitHub Action
+#   SIGN_IDENTITY=-        signature ad hoc, sans certificat (GitHub Action) ; par défaut "Apple Development"
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -15,6 +18,10 @@ cd "$(dirname "$0")/.."
 repo="${REPO:-Elliot67/vid-sniper}"
 publish=false
 [[ "${1:-}" == "--publish" ]] && publish=true
+
+if [[ -n "${VERSION:-}" ]]; then
+    sed -i '' -e "s/CFBundleShortVersionString: \".*\"/CFBundleShortVersionString: \"$VERSION\"/" project.yml
+fi
 
 echo "→ Génération du projet"
 xcodegen --quiet
@@ -30,6 +37,7 @@ xcodebuild \
     -destination "generic/platform=macOS" \
     -derivedDataPath build/release \
     -quiet \
+    ${SIGN_IDENTITY:+CODE_SIGN_IDENTITY="$SIGN_IDENTITY"} \
     build
 
 app="build/release/Build/Products/Release/VidSniper.app"

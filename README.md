@@ -45,4 +45,6 @@ xcodebuild                  # build Debug dans build/Debug/
 ./scripts/release.sh --publish   # publie la Release GitHub et pousse la recette
 ```
 
+Release automatique : pousser un tag (`git tag v0.2.0 && git push origin v0.2.0`), la GitHub Action `.github/workflows/release.yml` compile, publie la Release et met à jour la recette Homebrew.
+
 Le fonctionnement détaillé et les choix techniques sont dans [PLAN.md](PLAN.md).
