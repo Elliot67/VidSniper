@@ -318,6 +318,7 @@ final class MainWindowController {
     private var window: NSWindow?
 
     func show<Content: View>(_ content: @autoclosure () -> Content) {
+        let isNew = window == nil
         if window == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
@@ -334,6 +335,9 @@ final class MainWindowController {
             self.window = window
         }
         window?.makeKeyAndOrderFront(nil)
+        // Aucun contrôle sélectionné à l'ouverture : macOS donnait le focus clavier (contour bleu) au premier
+        // contrôle de la page. Tab permet toujours de naviguer au clavier.
+        if isNew { window?.makeFirstResponder(nil) }
         NSApp.activate()
     }
 

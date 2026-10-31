@@ -81,7 +81,7 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 ## Fenêtre principale
 
 - **En-tête** : logo de l'app (icône), nom et phrase de présentation.
-- **Deux tuiles d'action** côte à côte : "Nouvel enregistrement" (violette, avec le raccourci) et "Importer une vidéo" (secondaire, rappel de ⌘O et du glisser-déposer). Survol marqué. Glisser une vidéo n'importe où sur la fenêtre l'ouvre aussi (cadre violet en pointillés). Les tuiles ne prennent pas le focus clavier : sinon la première avait un contour bleu à l'ouverture de la fenêtre.
+- **Deux tuiles d'action** côte à côte : "Nouvel enregistrement" (violette, avec le raccourci) et "Importer une vidéo" (secondaire, rappel de ⌘O et du glisser-déposer). Survol marqué. Glisser une vidéo n'importe où sur la fenêtre l'ouvre aussi (cadre violet en pointillés). Les tuiles ne prennent pas le focus clavier, et aucun contrôle n'est sélectionné à l'ouverture de la fenêtre (sinon contour bleu sur la première tuile, puis sur le bouton du raccourci) ; Tab permet toujours de naviguer au clavier.
 - Erreurs dans un bandeau rouge discret.
 - Carte **"Dernière vidéo"** : nom, type et pistes, bouton "Ouvrir".
 - Carte **"Réglages"**, lignes avec icône alignée, titre, détail et contrôle à droite :
