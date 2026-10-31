@@ -99,7 +99,7 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 
 ### 1. Sélection de zone (façon Cmd+Shift+4)
 
-- ⌘⇧8 assombrit tous les écrans et affiche un curseur en croix. ⌘⇧8 à nouveau ou Esc annule.
+- ⌘⇧8 assombrit tous les écrans et affiche un curseur en croix. ⌘⇧8 à nouveau ou Esc annule. Le voile sombre apparaît en **simple fondu** (0,15 s) : l'animation par défaut de macOS animait tout le rectangle de l'écran. Il disparaît instantanément, pour ne jamais être dans l'enregistrement.
 - On **glisse directement sur l'écran** pour tracer la zone, avec ses dimensions en pixels affichées en direct.
 - La zone reste ajustable : 8 poignées pour redimensionner, glisser l'intérieur pour déplacer. Taille minimale 10×10.
 - **Un simple clic ne fait rien** (il ne sélectionne plus l'écran entier, ce qui bloquait l'ajustement).

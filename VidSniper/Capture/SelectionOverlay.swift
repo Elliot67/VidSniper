@@ -59,7 +59,15 @@ final class SelectionOverlay {
         }
 
         NSApp.activate()
-        windows.forEach { $0.orderFrontRegardless() }
+        // Simple fondu : l'animation par défaut de macOS animait tout le calque sombre, dont on voyait le rectangle.
+        windows.forEach {
+            $0.alphaValue = 0
+            $0.orderFrontRegardless()
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            windows.forEach { $0.animator().alphaValue = 1 }
+        }
         let mouse = NSEvent.mouseLocation
         let target = windows.first { $0.frame.contains(mouse) } ?? windows.first
         target?.makeKey()
@@ -107,6 +115,7 @@ final class OverlayWindow: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
+        animationBehavior = .none
         hidesOnDeactivate = false
         isReleasedWhenClosed = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
