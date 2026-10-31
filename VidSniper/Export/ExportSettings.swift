@@ -10,7 +10,7 @@ enum ExportSize: Double, CaseIterable, Identifiable, Sendable {
     var id: Double { rawValue }
 
     var label: String {
-        "\(Int(rawValue * 100)) %"
+        rawValue.formatted(.percent)
     }
 }
 
@@ -21,9 +21,9 @@ enum ExportQuality: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .high: "Haute"
-        case .medium: "Moyenne"
-        case .light: "Légère"
+        case .high: String(localized: "High")
+        case .medium: String(localized: "Medium")
+        case .light: String(localized: "Light")
         }
     }
 

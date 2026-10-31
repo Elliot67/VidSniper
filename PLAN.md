@@ -17,6 +17,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 4 (bonus) | Annotations (cadre / projecteur, rectangle / ellipse, couleurs) sur une plage de temps, timeline retravaillée, aide des raccourcis | Fait |
 | 5 | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur (version de base, sans clics) | Fait |
 | 6 | Finitions : récupérer une partie supprimée en rallongeant un voisin, clics dans l'aperçu de rallonge, page d'accueil refaite avec le logo | Fait |
+| 7 | Traductions anglais / français (String Catalogs) | Fait, à tester |
 | - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
 ### Import de vidéo (phase 5)
@@ -50,6 +51,15 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 - Relancer l'app : `pkill -x VidSniper; sleep 1; open build/Debug/VidSniper.app` (le `sleep` évite l'erreur -600).
 - Prérequis signature : le certificat intermédiaire Apple **WWDR G3** (https://www.apple.com/certificateauthority/) doit être installé, sinon le certificat de dev est considéré invalide.
 - **Installation** : `./scripts/install.sh` (à lancer soi-même, hors sandbox) compile en Release, remplace `/Applications/VidSniper.app` et la lance. Même signature que le build de dev : les permissions restent accordées. Il **supprime ensuite les copies de build** (`build/Debug` et le build Release), après les avoir désenregistrées de Launch Services : une seule VidSniper sur le Mac (pas de conflit sur le raccourci global, pas de doublon dans Spotlight).
+
+### Traductions (anglais / français)
+
+- Méthode standard Apple : **String Catalogs**. Le code est écrit en **anglais** (langue source, `developmentLanguage: en`), le français est dans `VidSniper/Resources/Localizable.xcstrings`. Les textes de l'Info.plist (description du micro, type de document "Video") sont traduits dans `InfoPlist.xcstrings`.
+- La langue suit celle du système (Réglages Système > Général > Langue et région, avec un réglage par app possible dans "Applications"). Anglais par défaut pour toute autre langue.
+- Dans le code : les littéraux SwiftUI (`Text("…")`, `Button`, `Label`, `.help`) sont traduits automatiquement. Tout texte qui passe par une variable `String` (titres des composants `ToggleChip`, `ActionTile`, `Card`, `SettingsRow`, cellules de la timeline, erreurs, textes dessinés en AppKit) passe par `String(localized: "…")`. Ce qui ne se traduit pas (nom de l'app, durées, dimensions) utilise `Text(verbatim:)`.
+- Interpolations : `"Size: \(x)"` donne la clé `Size: %@` (`%lld` pour un entier) ; avec plusieurs valeurs, la traduction peut les réordonner (`%1$@`, `%2$@`).
+- Ajouter un texte : l'écrire en anglais dans le code, puis ajouter la traduction dans le catalogue (Xcode le complète à chaque build quand le projet est ouvert dans Xcode ; en ligne de commande, les clés extraites sont dans les fichiers `.stringsdata` du dossier `build/`).
+- Le nom des fichiers enregistrés suit aussi la langue ("2026-10-31 at 14.03.22" / "2026-10-31 à 14.03.22").
 
 ### Distribution (gratuite, sans App Store)
 

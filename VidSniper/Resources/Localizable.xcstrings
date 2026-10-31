@@ -1,0 +1,1407 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ is already used by another app." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est déjà utilisé par une autre app."
+          }
+        }
+      }
+    },
+    "A spotlight has no color" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un projecteur n'a pas de couleur"
+          }
+        }
+      }
+    },
+    "Allow" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser"
+          }
+        }
+      }
+    },
+    "Allow screen recording first" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorise d'abord l'enregistrement de l'écran"
+          }
+        }
+      }
+    },
+    "Annotations" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annotations"
+          }
+        }
+      }
+    },
+    "Anywhere" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partout"
+          }
+        }
+      }
+    },
+    "Back / forward one second" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reculer / avancer d'une seconde"
+          }
+        }
+      }
+    },
+    "Back to the previous area" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenir à la zone précédente"
+          }
+        }
+      }
+    },
+    "Balance unavailable: no sound detected (%@)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance indisponible : pas de son détecté (%@)"
+          }
+        }
+      }
+    },
+    "Balance: %@ %lld dB lower (double-click: reset)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance : %1$@ %2$lld dB plus bas (double-clic : réglage par défaut)"
+          }
+        }
+      }
+    },
+    "Balance: %@ and %@ at the same level (double-click: reset)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance : %1$@ et %2$@ au même niveau (double-clic : réglage par défaut)"
+          }
+        }
+      }
+    },
+    "Balance: keep both tracks to use it" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balance : il faut garder les deux pistes"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        }
+      }
+    },
+    "Choose a video to edit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisis une vidéo à éditer"
+          }
+        }
+      }
+    },
+    "Choose an area of the screen to record" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir une zone de l'écran à enregistrer"
+          }
+        }
+      }
+    },
+    "Click color" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couleur des clics"
+          }
+        }
+      }
+    },
+    "Click, then type the new shortcut" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cliquer, puis taper le nouveau raccourci"
+          }
+        }
+      }
+    },
+    "Clicks" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clics"
+          }
+        }
+      }
+    },
+    "Copied" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiée"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier"
+          }
+        }
+      }
+    },
+    "Copy the video" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier la vidéo"
+          }
+        }
+      }
+    },
+    "Copy the video to paste it into Slack, Jira… (⌘C)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier la vidéo pour la coller dans Slack, Jira… (⌘C)"
+          }
+        }
+      }
+    },
+    "Corners" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coins"
+          }
+        }
+      }
+    },
+    "Couldn't read the edit." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture du montage impossible."
+          }
+        }
+      }
+    },
+    "Couldn't save: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement impossible : %@"
+          }
+        }
+      }
+    },
+    "Couldn't start the recording: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de démarrer l'enregistrement : %@"
+          }
+        }
+      }
+    },
+    "Couldn't write the file." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écriture du fichier impossible."
+          }
+        }
+      }
+    },
+    "Couldn't write the MP4." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écriture du MP4 impossible."
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer"
+          }
+        }
+      }
+    },
+    "Delete the selected annotation (⌫)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer l'annotation sélectionnée (⌫)"
+          }
+        }
+      }
+    },
+    "Delete the selected segment (⌫)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le segment sélectionné (⌫)"
+          }
+        }
+      }
+    },
+    "Delete the selected segment or annotation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le segment ou l'annotation sélectionné"
+          }
+        }
+      }
+    },
+    "Display not found." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran introuvable."
+          }
+        }
+      }
+    },
+    "Drag" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glisser"
+          }
+        }
+      }
+    },
+    "Drag the video into Slack, Jira…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glisse la vidéo vers Slack, Jira…"
+          }
+        }
+      }
+    },
+    "Drag to select an area · Esc to cancel" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glisse pour sélectionner une zone · Esc pour annuler"
+          }
+        }
+      }
+    },
+    "Drag ↕" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glisser ↕"
+          }
+        }
+      }
+    },
+    "Draw" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tracer"
+          }
+        }
+      }
+    },
+    "Draw (Draw tool on)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tracer (outil Tracer actif)"
+          }
+        }
+      }
+    },
+    "Draw an annotation: drag over the video" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tracer une annotation : glisser sur la vidéo"
+          }
+        }
+      }
+    },
+    "Editing" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Montage"
+          }
+        }
+      }
+    },
+    "Ellipse" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ellipse"
+          }
+        }
+      }
+    },
+    "Estimate: ≈ %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimation : ≈ %@"
+          }
+        }
+      }
+    },
+    "Exit Full Screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter le plein écran"
+          }
+        }
+      }
+    },
+    "Export" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        }
+      }
+    },
+    "Exporting…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export…"
+          }
+        }
+      }
+    },
+    "Fit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajuster"
+          }
+        }
+      }
+    },
+    "Frame" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cadre"
+          }
+        }
+      }
+    },
+    "Frame color" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couleur du cadre"
+          }
+        }
+      }
+    },
+    "Frame: drag to move, edges for the duration" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cadre : glisser pour déplacer, bords pour la durée"
+          }
+        }
+      }
+    },
+    "Full Screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plein écran"
+          }
+        }
+      }
+    },
+    "Full screen · %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plein écran · %@"
+          }
+        }
+      }
+    },
+    "Global shortcut" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raccourci global"
+          }
+        }
+      }
+    },
+    "Go to start / end" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aller au début / à la fin"
+          }
+        }
+      }
+    },
+    "Granted" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accordé"
+          }
+        }
+      }
+    },
+    "Green" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vert"
+          }
+        }
+      }
+    },
+    "High" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haute"
+          }
+        }
+      }
+    },
+    "Highlight the clicks in the video" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mettre en évidence les clics dans la vidéo"
+          }
+        }
+      }
+    },
+    "Home / End" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Début / Fin"
+          }
+        }
+      }
+    },
+    "Import Video" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer une vidéo"
+          }
+        }
+      }
+    },
+    "Import Video…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer une vidéo…"
+          }
+        }
+      }
+    },
+    "Imported video" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo importée"
+          }
+        }
+      }
+    },
+    "Keep or mute the %@ track" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garder ou couper la piste %@"
+          }
+        }
+      }
+    },
+    "Keeps %@ available without opening the app." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garde %@ disponible sans ouvrir l'app."
+          }
+        }
+      }
+    },
+    "Latest Video" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière vidéo"
+          }
+        }
+      }
+    },
+    "Launch at login" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lancer à l'ouverture de session"
+          }
+        }
+      }
+    },
+    "Light" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Légère"
+          }
+        }
+      }
+    },
+    "Look: colored outline around the area" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendu : contour coloré autour de la zone"
+          }
+        }
+      }
+    },
+    "Look: everything is dimmed except the area" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendu : tout est assombri sauf la zone"
+          }
+        }
+      }
+    },
+    "Medium" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moyenne"
+          }
+        }
+      }
+    },
+    "Microphone" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micro"
+          }
+        }
+      }
+    },
+    "Microphone not allowed (see the main window)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micro non autorisé (voir la fenêtre principale)"
+          }
+        }
+      }
+    },
+    "Move the area" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer la zone"
+          }
+        }
+      }
+    },
+    "New Recording" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvel enregistrement"
+          }
+        }
+      }
+    },
+    "New recording / stop" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvel enregistrement / arrêter"
+          }
+        }
+      }
+    },
+    "No clicks during the recording" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun clic pendant l'enregistrement"
+          }
+        }
+      }
+    },
+    "No frames were captured." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune image n'a été capturée."
+          }
+        }
+      }
+    },
+    "No sound detected on this track (%@): it's muted" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de son détecté sur cette piste (%@) : elle est coupée"
+          }
+        }
+      }
+    },
+    "Open" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir"
+          }
+        }
+      }
+    },
+    "Open an existing video in the editor" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir une vidéo existante dans l'éditeur"
+          }
+        }
+      }
+    },
+    "Optional, to record your voice." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optionnel, pour enregistrer ta voix."
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause"
+          }
+        }
+      }
+    },
+    "Pinch" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pincer"
+          }
+        }
+      }
+    },
+    "Play / pause" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture / pause"
+          }
+        }
+      }
+    },
+    "Playback" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture"
+          }
+        }
+      }
+    },
+    "Previous / next frame" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image précédente / suivante"
+          }
+        }
+      }
+    },
+    "Purple" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Violet"
+          }
+        }
+      }
+    },
+    "Quality" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qualité"
+          }
+        }
+      }
+    },
+    "Record" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer"
+          }
+        }
+      }
+    },
+    "Record an area of your screen, trim it, share it." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistre une zone de l'écran, coupe, partage."
+          }
+        }
+      }
+    },
+    "Record the microphone" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer le micro"
+          }
+        }
+      }
+    },
+    "Record the whole screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer tout l'écran"
+          }
+        }
+      }
+    },
+    "Recording" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement"
+          }
+        }
+      }
+    },
+    "Red" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rouge"
+          }
+        }
+      }
+    },
+    "Redo" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rétablir"
+          }
+        }
+      }
+    },
+    "Redo (⌘⇧Z)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rétablir (⌘⇧Z)"
+          }
+        }
+      }
+    },
+    "Required to capture an area." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nécessaire pour capturer une zone."
+          }
+        }
+      }
+    },
+    "Reset to %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revenir à %@"
+          }
+        }
+      }
+    },
+    "Resize the selected annotation" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redimensionner l'annotation sélectionnée"
+          }
+        }
+      }
+    },
+    "Resume" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reprendre"
+          }
+        }
+      }
+    },
+    "Rounded rectangle" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rectangle arrondi"
+          }
+        }
+      }
+    },
+    "Save a copy" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer une copie"
+          }
+        }
+      }
+    },
+    "Save a copy of the video (⌘S)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer une copie de la vidéo (⌘S)"
+          }
+        }
+      }
+    },
+    "Save…" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer…"
+          }
+        }
+      }
+    },
+    "Screen recording" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement de l'écran"
+          }
+        }
+      }
+    },
+    "Screen recording permission is required." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La permission d'enregistrement de l'écran est nécessaire."
+          }
+        }
+      }
+    },
+    "Scroll (two fingers)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Défiler (deux doigts)"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réglages"
+          }
+        }
+      }
+    },
+    "Show the whole edit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher tout le montage"
+          }
+        }
+      }
+    },
+    "Size" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille"
+          }
+        }
+      }
+    },
+    "Size: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poids : %@"
+          }
+        }
+      }
+    },
+    "Space" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espace"
+          }
+        }
+      }
+    },
+    "Split" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couper"
+          }
+        }
+      }
+    },
+    "Split at the playhead" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couper à la tête de lecture"
+          }
+        }
+      }
+    },
+    "Split at the playhead (X)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couper à la tête de lecture (X)"
+          }
+        }
+      }
+    },
+    "Spotlight" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projecteur"
+          }
+        }
+      }
+    },
+    "Spotlight: drag to move, edges for the duration" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projecteur : glisser pour déplacer, bords pour la durée"
+          }
+        }
+      }
+    },
+    "Starts the area selection, then stops the recording." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lance la sélection de zone, puis arrête l'enregistrement."
+          }
+        }
+      }
+    },
+    "Stop (%@)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter (%@)"
+          }
+        }
+      }
+    },
+    "Stop drawing, then deselect" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter le tracé, puis désélectionner"
+          }
+        }
+      }
+    },
+    "System audio" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Son système"
+          }
+        }
+      }
+    },
+    "The recording failed: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'enregistrement a échoué : %@"
+          }
+        }
+      }
+    },
+    "The shortcut %@ is already used by another app: pick another one." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le raccourci %@ est déjà utilisé par une autre app : choisis-en un autre."
+          }
+        }
+      }
+    },
+    "The video contains no image." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La vidéo ne contient pas d'image."
+          }
+        }
+      }
+    },
+    "This file contains no video image." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce fichier ne contient pas d'image vidéo."
+          }
+        }
+      }
+    },
+    "This video can't be read." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette vidéo ne peut pas être lue."
+          }
+        }
+      }
+    },
+    "This video can't be read: %@" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette vidéo ne peut pas être lue : %@"
+          }
+        }
+      }
+    },
+    "Timeline" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Timeline"
+          }
+        }
+      }
+    },
+    "Type the shortcut… (Esc)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tape le raccourci… (Esc)"
+          }
+        }
+      }
+    },
+    "Undo" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler"
+          }
+        }
+      }
+    },
+    "Undo (⌘Z)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler (⌘Z)"
+          }
+        }
+      }
+    },
+    "Use at least ⌘, ⌥ or ⌃ with the key." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il faut au moins ⌘, ⌥ ou ⌃ avec la touche."
+          }
+        }
+      }
+    },
+    "Video" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo"
+          }
+        }
+      }
+    },
+    "Yellow" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaune"
+          }
+        }
+      }
+    },
+    "yyyy-MM-dd 'at' HH.mm.ss" : {
+      "comment" : "Date format of the recording file name",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "yyyy-MM-dd 'à' HH.mm.ss"
+          }
+        }
+      }
+    },
+    "Zoom around the pointer" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomer autour du pointeur"
+          }
+        }
+      }
+    },
+    "Zoom in (⌘+)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomer (⌘+)"
+          }
+        }
+      }
+    },
+    "Zoom in / out" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomer / dézoomer"
+          }
+        }
+      }
+    },
+    "Zoom out (⌘−)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dézoomer (⌘−)"
+          }
+        }
+      }
+    },
+    "⌘O or drop a file" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘O ou glisser un fichier"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

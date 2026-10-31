@@ -7,47 +7,46 @@ struct ShortcutsHelp: View {
 
     private struct Shortcut: Identifiable {
         let keys: String
-        let action: String
-        var id: String { keys + action }
+        let action: LocalizedStringKey
+        var id: String { keys }
     }
 
-    private struct Category: Identifiable {
-        let title: String
+    private struct Category {
+        let title: LocalizedStringKey
         let shortcuts: [Shortcut]
-        var id: String { title }
     }
 
     private var categories: [Category] {
         [
-            Category(title: "Lecture", shortcuts: [
-                Shortcut(keys: "Espace", action: "Lecture / pause"),
-                Shortcut(keys: "← →", action: "Image précédente / suivante"),
-                Shortcut(keys: "⇧← ⇧→", action: "Reculer / avancer d'une seconde"),
-                Shortcut(keys: "Début / Fin", action: "Aller au début / à la fin"),
+            Category(title: "Playback", shortcuts: [
+                Shortcut(keys: String(localized: "Space"), action: "Play / pause"),
+                Shortcut(keys: "← →", action: "Previous / next frame"),
+                Shortcut(keys: "⇧← ⇧→", action: "Back / forward one second"),
+                Shortcut(keys: String(localized: "Home / End"), action: "Go to start / end"),
             ]),
-            Category(title: "Montage", shortcuts: [
-                Shortcut(keys: "X", action: "Couper à la tête de lecture"),
-                Shortcut(keys: "⌫", action: "Supprimer le segment ou l'annotation sélectionné"),
-                Shortcut(keys: "⌘Z", action: "Annuler"),
-                Shortcut(keys: "⇧⌘Z", action: "Rétablir"),
+            Category(title: "Editing", shortcuts: [
+                Shortcut(keys: "X", action: "Split at the playhead"),
+                Shortcut(keys: "⌫", action: "Delete the selected segment or annotation"),
+                Shortcut(keys: "⌘Z", action: "Undo"),
+                Shortcut(keys: "⇧⌘Z", action: "Redo"),
             ]),
             Category(title: "Annotations", shortcuts: [
-                Shortcut(keys: "Glisser", action: "Tracer (outil Tracer actif)"),
-                Shortcut(keys: "Coins", action: "Redimensionner l'annotation sélectionnée"),
-                Shortcut(keys: "Esc", action: "Arrêter le tracé, puis désélectionner"),
+                Shortcut(keys: String(localized: "Drag"), action: "Draw (Draw tool on)"),
+                Shortcut(keys: String(localized: "Corners"), action: "Resize the selected annotation"),
+                Shortcut(keys: "Esc", action: "Stop drawing, then deselect"),
             ]),
             Category(title: "Timeline", shortcuts: [
-                Shortcut(keys: "⌘+ / ⌘−", action: "Zoomer / dézoomer"),
-                Shortcut(keys: "Pincer", action: "Zoomer autour du pointeur"),
-                Shortcut(keys: "Glisser ↕", action: "Défiler (deux doigts)"),
+                Shortcut(keys: "⌘+ / ⌘−", action: "Zoom in / out"),
+                Shortcut(keys: String(localized: "Pinch"), action: "Zoom around the pointer"),
+                Shortcut(keys: String(localized: "Drag ↕"), action: "Scroll (two fingers)"),
             ]),
             Category(title: "Export", shortcuts: [
-                Shortcut(keys: "⌘C", action: "Copier la vidéo"),
-                Shortcut(keys: "⌘S", action: "Enregistrer une copie"),
+                Shortcut(keys: "⌘C", action: "Copy the video"),
+                Shortcut(keys: "⌘S", action: "Save a copy"),
             ]),
-            Category(title: "Partout", shortcuts: [
-                Shortcut(keys: AppCoordinator.shortcutLabel, action: "Nouvel enregistrement / arrêter"),
-                Shortcut(keys: "⌘O", action: "Importer une vidéo"),
+            Category(title: "Anywhere", shortcuts: [
+                Shortcut(keys: AppCoordinator.shortcutLabel, action: "New recording / stop"),
+                Shortcut(keys: "⌘O", action: "Import Video"),
             ]),
         ]
     }
@@ -66,9 +65,10 @@ struct ShortcutsHelp: View {
 
     private var list: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(categories) { category in
+            ForEach(Array(categories.enumerated()), id: \.offset) { _, category in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(category.title.uppercased())
+                    Text(category.title)
+                        .textCase(.uppercase)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Theme.textMuted)
                     ForEach(category.shortcuts) { shortcut in

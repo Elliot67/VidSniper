@@ -8,9 +8,10 @@ enum ImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unreadable(let error):
-            "Cette vidéo ne peut pas être lue\(error.map { " : \($0.localizedDescription)" } ?? ".")"
+            error.map { String(localized: "This video can't be read: \($0.localizedDescription)") }
+                ?? String(localized: "This video can't be read.")
         case .noVideo:
-            "Ce fichier ne contient pas d'image vidéo."
+            String(localized: "This file contains no video image.")
         }
     }
 }

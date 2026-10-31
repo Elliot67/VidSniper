@@ -27,10 +27,10 @@ enum AnnotationColor: String, CaseIterable, Codable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .violet: "Violet"
-        case .red: "Rouge"
-        case .yellow: "Jaune"
-        case .green: "Vert"
+        case .violet: String(localized: "Purple")
+        case .red: String(localized: "Red")
+        case .yellow: String(localized: "Yellow")
+        case .green: String(localized: "Green")
         }
     }
 

@@ -8,9 +8,9 @@ enum RecorderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .displayNotFound: "Écran introuvable."
-        case .writerFailed(let error): error?.localizedDescription ?? "Écriture du fichier impossible."
-        case .noFrames: "Aucune image n'a été capturée."
+        case .displayNotFound: String(localized: "Display not found.")
+        case .writerFailed(let error): error?.localizedDescription ?? String(localized: "Couldn't write the file.")
+        case .noFrames: String(localized: "No frames were captured.")
         }
     }
 }

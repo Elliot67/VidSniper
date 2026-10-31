@@ -213,7 +213,7 @@ private final class GripView: NSView {
             .applying(NSImage.SymbolConfiguration(paletteColors: [.white]))
         guard let symbol = NSImage(
             systemSymbolName: "arrow.up.and.down.and.arrow.left.and.right",
-            accessibilityDescription: "Déplacer la zone"
+            accessibilityDescription: String(localized: "Move the area")
         )?.withSymbolConfiguration(configuration) else { return }
         let size = symbol.size
         symbol.draw(in: CGRect(
@@ -247,13 +247,13 @@ private struct RecordingBarView: View {
                 Image(systemName: session.isPaused ? "play.fill" : "pause.fill")
             }
             .buttonStyle(IconButtonStyle())
-            .help(session.isPaused ? "Reprendre" : "Pause")
+            .help(session.isPaused ? "Resume" : "Pause")
 
             Button(action: onStop) {
                 Image(systemName: "stop.fill")
             }
             .buttonStyle(IconButtonStyle(tint: Theme.error))
-            .help("Arrêter (\(AppCoordinator.shortcutLabel))")
+            .help("Stop (\(AppCoordinator.shortcutLabel))")
         }
         .padding(.leading, 14)
         .padding(.trailing, 6)

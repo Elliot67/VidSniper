@@ -1,0 +1,28 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSMicrophoneUsageDescription" : {
+      "comment" : "Privacy - Microphone Usage Description",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VidSniper enregistre le micro pendant tes captures d'écran."
+          }
+        }
+      }
+    },
+    "Video" : {
+      "comment" : "Document type name (CFBundleTypeName)",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

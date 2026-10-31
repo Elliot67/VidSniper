@@ -55,7 +55,7 @@ struct RecordingResult: Sendable {
 
     /// Nom de la ligne audio dans l'éditeur.
     func audioTitle(microphone: Bool) -> String {
-        guard isImported else { return microphone ? "Micro" : "Son système" }
+        guard isImported else { return microphone ? String(localized: "Microphone") : String(localized: "System audio") }
         if !hasMicrophone { return "Audio" }
         return microphone ? "Audio 2" : "Audio 1"
     }

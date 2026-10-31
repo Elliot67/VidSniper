@@ -18,7 +18,7 @@ enum RecordingStore {
 
     static func newRecordingURL() -> URL {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd 'à' HH.mm.ss"
+        formatter.dateFormat = String(localized: "yyyy-MM-dd 'at' HH.mm.ss", comment: "Date format of the recording file name")
         return directory.appending(path: "VidSniper \(formatter.string(from: .now)).mov")
     }
 

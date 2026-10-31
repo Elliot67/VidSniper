@@ -6,8 +6,8 @@ enum ExportError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .cannotRead(let error): error?.localizedDescription ?? "Lecture du montage impossible."
-        case .cannotWrite(let error): error?.localizedDescription ?? "Écriture du MP4 impossible."
+        case .cannotRead(let error): error?.localizedDescription ?? String(localized: "Couldn't read the edit.")
+        case .cannotWrite(let error): error?.localizedDescription ?? String(localized: "Couldn't write the MP4.")
         }
     }
 }

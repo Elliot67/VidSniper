@@ -5,6 +5,8 @@ options:
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
+  # Langue source du code ; le français est dans les String Catalogs (Resources/*.xcstrings).
+  developmentLanguage: en
 
 settings:
   base:
@@ -15,6 +17,8 @@ settings:
     CODE_SIGN_IDENTITY: "Apple Development"
     ENABLE_HARDENED_RUNTIME: YES
     DEAD_CODE_STRIPPING: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
 
 targets:
   VidSniper:
@@ -30,14 +34,17 @@ targets:
       path: VidSniper/Resources/Info.plist
       properties:
         CFBundleDisplayName: VidSniper
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, fr]
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "15.0"
-        NSMicrophoneUsageDescription: VidSniper enregistre le micro pendant tes captures d'écran.
+        # Textes traduits dans Resources/InfoPlist.xcstrings.
+        NSMicrophoneUsageDescription: VidSniper records the microphone during your screen captures.
         # Vidéos ouvrables depuis le Finder ("Ouvrir avec") ou en les glissant sur l'icône du Dock.
         CFBundleDocumentTypes:
-          - CFBundleTypeName: Vidéo
+          - CFBundleTypeName: Video
             CFBundleTypeRole: Viewer
             LSHandlerRank: Alternate
             LSItemContentTypes:

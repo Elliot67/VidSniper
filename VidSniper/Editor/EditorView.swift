@@ -63,26 +63,26 @@ struct EditorView: View {
             .buttonStyle(IconButtonStyle())
             .focusable(false)
 
-            Text("\(Self.format(document.currentTime)) / \(Self.format(document.duration))")
+            Text(verbatim: "\(Self.format(document.currentTime)) / \(Self.format(document.duration))")
                 .font(.system(size: 12).monospacedDigit())
                 .foregroundStyle(Theme.textMuted)
 
             Spacer()
 
             Button(action: document.cutAtPlayhead) {
-                Label("Couper", systemImage: "scissors")
+                Label("Split", systemImage: "scissors")
             }
             .buttonStyle(SecondaryButtonStyle())
             .focusable(false)
-            .help("Couper à la tête de lecture (X)")
+            .help("Split at the playhead (X)")
 
             Button(action: document.deleteSelectedSegment) {
-                Label("Supprimer", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
             .buttonStyle(SecondaryButtonStyle())
             .focusable(false)
             .disabled(document.selectedSegment == nil || document.state.segments.count < 2)
-            .help("Supprimer le segment sélectionné (⌫)")
+            .help("Delete the selected segment (⌫)")
 
             Button(action: document.undo) {
                 Image(systemName: "arrow.uturn.backward")
@@ -90,7 +90,7 @@ struct EditorView: View {
             .buttonStyle(IconButtonStyle())
             .focusable(false)
             .disabled(!document.canUndo)
-            .help("Annuler (⌘Z)")
+            .help("Undo (⌘Z)")
 
             Button(action: document.redo) {
                 Image(systemName: "arrow.uturn.forward")
@@ -98,7 +98,7 @@ struct EditorView: View {
             .buttonStyle(IconButtonStyle())
             .focusable(false)
             .disabled(!document.canRedo)
-            .help("Rétablir (⌘⇧Z)")
+            .help("Redo (⌘⇧Z)")
 
             Rectangle()
                 .fill(Theme.border)
@@ -110,19 +110,19 @@ struct EditorView: View {
             .buttonStyle(IconButtonStyle())
             .focusable(false)
             .disabled(document.scale <= document.fitScale + 0.001)
-            .help("Dézoomer (⌘−)")
+            .help("Zoom out (⌘−)")
 
             Button { document.zoom(by: 1.5) } label: {
                 Image(systemName: "plus.magnifyingglass")
             }
             .buttonStyle(IconButtonStyle())
             .focusable(false)
-            .help("Zoomer (⌘+)")
+            .help("Zoom in (⌘+)")
 
-            Button("Ajuster", action: document.zoomToFit)
+            Button("Fit", action: document.zoomToFit)
                 .buttonStyle(SecondaryButtonStyle())
                 .focusable(false)
-                .help("Afficher tout le montage")
+                .help("Show the whole edit")
         }
     }
 

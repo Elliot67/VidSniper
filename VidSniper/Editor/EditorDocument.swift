@@ -227,7 +227,7 @@ final class EditorDocument {
             let audioTracks = try await asset.loadTracks(withMediaType: .audio)
 
             guard let video = videoTracks.first else {
-                loadError = "La vidéo ne contient pas d'image."
+                loadError = String(localized: "The video contains no image.")
                 return
             }
             videoTrack = video

@@ -416,7 +416,7 @@ final class SelectionView: NSView {
 
         let pixels = "\(Int(selection.width * scale)) × \(Int(selection.height * scale))"
         if isFullScreen {
-            let text = "Plein écran · \(pixels)"
+            let text = String(localized: "Full screen · \(pixels)")
             let size = (text as NSString).size(withAttributes: Self.labelAttributes(size: 12))
             drawLabel(text, at: CGPoint(x: bounds.midX - size.width / 2, y: bounds.minY + 40))
         } else {
@@ -425,7 +425,7 @@ final class SelectionView: NSView {
     }
 
     private func drawHint() {
-        let text = "Glisse pour sélectionner une zone · Esc pour annuler"
+        let text = String(localized: "Drag to select an area · Esc to cancel")
         let attributes = Self.labelAttributes(size: 14)
         let size = (text as NSString).size(withAttributes: attributes)
         drawLabel(text, at: CGPoint(x: bounds.midX - size.width / 2, y: bounds.midY - size.height / 2), size: 14)

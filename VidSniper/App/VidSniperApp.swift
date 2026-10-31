@@ -9,7 +9,7 @@ struct VidSniperApp: App {
         Settings { EmptyView() }
             .commands {
                 CommandGroup(replacing: .newItem) {
-                    Button("Importer une vidéo…") { appDelegate.importVideo() }
+                    Button("Import Video…") { appDelegate.importVideo() }
                         .keyboardShortcut("o")
                 }
             }

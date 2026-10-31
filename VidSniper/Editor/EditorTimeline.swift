@@ -310,7 +310,7 @@ struct EditorTimeline: View {
         VStack(alignment: .leading, spacing: Self.rowSpacing) {
             Color.clear.frame(height: Self.rulerHeight)
 
-            TimelineHeaderCell(icon: "film", title: "Vidéo")
+            TimelineHeaderCell(icon: "film", title: String(localized: "Video"))
                 .frame(height: Self.thumbnailHeight)
 
             ForEach(lanes, id: \.self) { lane in
@@ -325,7 +325,7 @@ struct EditorTimeline: View {
                     .frame(height: Self.clicksLaneHeight)
             }
 
-            TimelineHeaderCell(icon: "pencil.and.scribble", title: "Annotations")
+            TimelineHeaderCell(icon: "pencil.and.scribble", title: String(localized: "Annotations"))
                 .frame(height: Self.annotationRowHeight)
                 .frame(height: annotationLaneHeight, alignment: .top)
         }
@@ -381,20 +381,20 @@ struct EditorTimeline: View {
         // Piste sans son : coupée d'office, impossible à réactiver.
         .disabled(document.isSilent(microphone: isMicrophone))
         .help(document.isSilent(microphone: isMicrophone)
-            ? "Pas de son détecté sur cette piste (\(name)) : elle est coupée"
-            : "Garder ou couper la piste \(name)")
+            ? "No sound detected on this track (\(name)): it's muted"
+            : "Keep or mute the \(name) track")
     }
 
     private var balanceHelp: String {
         let top = title(.systemAudio)
         let bottom = title(.microphone)
-        if document.isSilent(microphone: true) { return "Balance indisponible : pas de son détecté (\(bottom))" }
-        if document.isSilent(microphone: false) { return "Balance indisponible : pas de son détecté (\(top))" }
-        guard document.isBalanceAvailable else { return "Balance : il faut garder les deux pistes" }
+        if document.isSilent(microphone: true) { return String(localized: "Balance unavailable: no sound detected (\(bottom))") }
+        if document.isSilent(microphone: false) { return String(localized: "Balance unavailable: no sound detected (\(top))") }
+        guard document.isBalanceAvailable else { return String(localized: "Balance: keep both tracks to use it") }
         let offset = Int((abs(document.balance) * EditorDocument.balanceRange).rounded())
-        if offset == 0 { return "Balance : \(bottom) et \(top) au même niveau (double-clic : réglage par défaut)" }
+        if offset == 0 { return String(localized: "Balance: \(bottom) and \(top) at the same level (double-click: reset)") }
         let quieter = document.balance < 0 ? top : bottom
-        return "Balance : \(quieter) \(offset) dB plus bas (double-clic : réglage par défaut)"
+        return String(localized: "Balance: \(quieter) \(offset) dB lower (double-click: reset)")
     }
 
     /// Gain réellement appliqué à la piste (normalisation + balance), pour afficher le niveau final.
@@ -451,12 +451,12 @@ struct EditorTimeline: View {
         return ZStack(alignment: .trailing) {
             TimelineHeaderCell(
                 icon: isOn ? "cursorarrow.click.2" : "cursorarrow",
-                title: "Clics",
+                title: String(localized: "Clicks"),
                 isOn: isOn,
                 action: { document.setShowClicks(!document.showClicks) }
             )
             .disabled(!document.hasClicks)
-            .help(document.hasClicks ? "Mettre en évidence les clics dans la vidéo" : "Aucun clic pendant l'enregistrement")
+            .help(document.hasClicks ? "Highlight the clicks in the video" : "No clicks during the recording")
 
             // Couleur des clics, même palette que les annotations.
             Menu {
@@ -476,7 +476,7 @@ struct EditorTimeline: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .disabled(!document.hasClicks || !document.showClicks)
-            .help("Couleur des clics")
+            .help("Click color")
             .padding(.trailing, 10)
         }
     }
@@ -581,7 +581,7 @@ struct EditorTimeline: View {
         // Priorité normale : les bords (gestes enfants, plus profonds) passent avant le déplacement,
         // et le bloc passe quand même avant le positionnement de la tête de lecture (geste ancêtre).
         .gesture(annotationGesture(annotation, kind: .move, scale: scale, blockStart: range.lowerBound))
-        .help(annotation.style == .frame ? "Cadre : glisser pour déplacer, bords pour la durée" : "Projecteur : glisser pour déplacer, bords pour la durée")
+        .help(annotation.style == .frame ? "Frame: drag to move, edges for the duration" : "Spotlight: drag to move, edges for the duration")
     }
 
     private func annotationEdge(_ annotation: Annotation, kind: AnnotationDragKind, scale: Double, isSelected: Bool) -> some View {

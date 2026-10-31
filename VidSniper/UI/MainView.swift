@@ -56,10 +56,10 @@ struct MainView: View {
                 .interpolation(.high)
                 .frame(width: 56, height: 56)
             VStack(alignment: .leading, spacing: 3) {
-                Text("VidSniper")
+                Text(verbatim: "VidSniper")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(Theme.textNormal)
-                Text("Enregistre une zone de l'écran, coupe, partage.")
+                Text("Record an area of your screen, trim it, share it.")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.textMuted)
             }
@@ -72,22 +72,22 @@ struct MainView: View {
         HStack(spacing: Theme.spacing) {
             ActionTile(
                 icon: "record.circle",
-                title: "Nouvel enregistrement",
+                title: String(localized: "New Recording"),
                 detail: coordinator.shortcut.label,
                 isPrimary: true,
                 action: coordinator.startSelection
             )
             .disabled(!permissions.screenRecording || coordinator.state != .idle)
-            .help(permissions.screenRecording ? "Choisir une zone de l'écran à enregistrer" : "Autorise d'abord l'enregistrement de l'écran")
+            .help(permissions.screenRecording ? "Choose an area of the screen to record" : "Allow screen recording first")
 
             ActionTile(
                 icon: "square.and.arrow.down",
-                title: "Importer une vidéo",
-                detail: "⌘O ou glisser un fichier",
+                title: String(localized: "Import Video"),
+                detail: String(localized: "⌘O or drop a file"),
                 isPrimary: false,
                 action: coordinator.importVideo
             )
-            .help("Ouvrir une vidéo existante dans l'éditeur")
+            .help("Open an existing video in the editor")
         }
     }
 
@@ -112,9 +112,9 @@ struct MainView: View {
 
     /// Permet de rouvrir l'éditeur si on l'a fermé par erreur.
     private func lastRecordingCard(_ recording: RecordingResult) -> some View {
-        Card(title: "Dernière vidéo") {
+        Card(title: String(localized: "Latest Video")) {
             SettingsRow(icon: "film", title: recording.url.deletingPathExtension().lastPathComponent, detail: audioSummary(recording)) {
-                Button("Ouvrir") {
+                Button("Open") {
                     coordinator.openEditor(recording)
                 }
                 .buttonStyle(SecondaryButtonStyle())
@@ -123,7 +123,7 @@ struct MainView: View {
     }
 
     private func audioSummary(_ recording: RecordingResult) -> String {
-        var tracks = [recording.isImported ? "Vidéo importée" : "Enregistrement"]
+        var tracks = [recording.isImported ? String(localized: "Imported video") : String(localized: "Recording")]
         if recording.hasSystemAudio { tracks.append(recording.audioTitle(microphone: false).lowercased()) }
         if recording.hasMicrophone { tracks.append(recording.audioTitle(microphone: true).lowercased()) }
         return tracks.joined(separator: " · ")
@@ -132,11 +132,11 @@ struct MainView: View {
     // MARK: - Réglages
 
     private var settingsCard: some View {
-        Card(title: "Réglages") {
+        Card(title: String(localized: "Settings")) {
             SettingsRow(
                 icon: "keyboard",
-                title: "Raccourci global",
-                detail: coordinator.shortcutMessage ?? "Lance la sélection de zone, puis arrête l'enregistrement.",
+                title: String(localized: "Global shortcut"),
+                detail: coordinator.shortcutMessage ?? String(localized: "Starts the area selection, then stops the recording."),
                 detailIsError: coordinator.shortcutMessage != nil
             ) {
                 shortcutRecorder
@@ -146,8 +146,8 @@ struct MainView: View {
 
             SettingsRow(
                 icon: "power",
-                title: "Lancer à l'ouverture de session",
-                detail: "Garde \(coordinator.shortcut.label) disponible sans ouvrir l'app."
+                title: String(localized: "Launch at login"),
+                detail: String(localized: "Keeps \(coordinator.shortcut.label) available without opening the app.")
             ) {
                 Toggle("", isOn: Binding(
                     get: { coordinator.launchAtLogin.isEnabled },
@@ -163,8 +163,8 @@ struct MainView: View {
 
             SettingsRow(
                 icon: "rectangle.dashed.badge.record",
-                title: "Enregistrement de l'écran",
-                detail: "Nécessaire pour capturer une zone."
+                title: String(localized: "Screen recording"),
+                detail: String(localized: "Required to capture an area.")
             ) {
                 PermissionStatus(granted: permissions.screenRecording, required: true) {
                     permissions.requestScreenRecording()
@@ -175,8 +175,8 @@ struct MainView: View {
 
             SettingsRow(
                 icon: "mic",
-                title: "Micro",
-                detail: "Optionnel, pour enregistrer ta voix."
+                title: String(localized: "Microphone"),
+                detail: String(localized: "Optional, to record your voice.")
             ) {
                 PermissionStatus(granted: permissions.microphone == .authorized, required: false) {
                     Task { await permissions.requestMicrophone() }
@@ -199,13 +199,13 @@ struct MainView: View {
                     coordinator.beginShortcutRecording()
                 }
             } label: {
-                Text(isRecording ? "Tape le raccourci… (Esc)" : coordinator.shortcut.label)
+                (isRecording ? Text("Type the shortcut… (Esc)") : Text(verbatim: coordinator.shortcut.label))
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(isRecording ? Theme.accent : Theme.textNormal)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Cliquer, puis taper le nouveau raccourci")
+            .help("Click, then type the new shortcut")
 
             if canReset {
                 Button {
@@ -216,7 +216,7 @@ struct MainView: View {
                         .foregroundStyle(Theme.textMuted)
                 }
                 .buttonStyle(.plain)
-                .help("Revenir à \(Shortcut.standard.label)")
+                .help("Reset to \(Shortcut.standard.label)")
             }
         }
         .padding(.leading, 10)
@@ -355,7 +355,7 @@ private struct PermissionStatus: View {
                 Circle()
                     .fill(Theme.success)
                     .frame(width: 7, height: 7)
-                Text("Accordé")
+                Text("Granted")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textMuted)
             }
@@ -364,7 +364,7 @@ private struct PermissionStatus: View {
                 Circle()
                     .fill(required ? Theme.error : Theme.textMuted)
                     .frame(width: 7, height: 7)
-                Button("Autoriser", action: action)
+                Button("Allow", action: action)
                     .buttonStyle(SecondaryButtonStyle())
             }
         }

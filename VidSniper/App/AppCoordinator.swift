@@ -41,10 +41,14 @@ final class AppCoordinator {
     /// Libellé du raccourci, pour les vues qui n'ont pas accès au coordinateur (mini barre).
     static var shortcutLabel: String { Shortcut.saved.label }
 
+    private static func shortcutTakenError(_ shortcut: Shortcut) -> String {
+        String(localized: "The shortcut \(shortcut.label) is already used by another app: pick another one.")
+    }
+
     init() {
         let hotKey = HotKey { [weak self] in self?.handleHotKey() }
         if !hotKey.register(shortcut) {
-            lastError = "Le raccourci \(shortcut.label) est déjà utilisé par une autre app : choisis-en un autre."
+            lastError = Self.shortcutTakenError(shortcut)
         }
         self.hotKey = hotKey
     }
@@ -78,7 +82,7 @@ final class AppCoordinator {
             return
         }
         guard let newShortcut = Shortcut(event: event) else {
-            shortcutMessage = "Il faut au moins ⌘, ⌥ ou ⌃ avec la touche."
+            shortcutMessage = String(localized: "Use at least ⌘, ⌥ or ⌃ with the key.")
             return
         }
         endShortcutRecording()
@@ -88,13 +92,14 @@ final class AppCoordinator {
     func setShortcut(_ newShortcut: Shortcut) {
         guard let hotKey else { return }
         if hotKey.register(newShortcut) {
+            let previousError = Self.shortcutTakenError(shortcut)
             shortcut = newShortcut
             Shortcut.saved = newShortcut
             shortcutMessage = nil
-            if lastError?.contains("raccourci") == true { lastError = nil }
+            if lastError == previousError { lastError = nil }
         } else {
             hotKey.register(shortcut)
-            shortcutMessage = "\(newShortcut.label) est déjà utilisé par une autre app."
+            shortcutMessage = String(localized: "\(newShortcut.label) is already used by another app.")
         }
     }
 
@@ -121,7 +126,7 @@ final class AppCoordinator {
         guard state == .idle else { return }
         permissions.refresh()
         guard permissions.screenRecording else {
-            lastError = "La permission d'enregistrement de l'écran est nécessaire."
+            lastError = String(localized: "Screen recording permission is required.")
             showMainWindow()
             return
         }
@@ -187,7 +192,7 @@ final class AppCoordinator {
                 recordingBar = bar
                 startClickTracking(region: region)
             } catch {
-                lastError = "Impossible de démarrer l'enregistrement : \(error.localizedDescription)"
+                lastError = String(localized: "Couldn't start the recording: \(error.localizedDescription)")
                 state = .idle
                 showMainWindow()
             }
@@ -255,7 +260,7 @@ final class AppCoordinator {
                 state = .idle
                 openEditor(recording)
             } catch {
-                lastError = "L'enregistrement a échoué : \(error.localizedDescription)"
+                lastError = String(localized: "The recording failed: \(error.localizedDescription)")
                 self.recorder = nil
                 state = .idle
                 showMainWindow()
@@ -270,7 +275,7 @@ final class AppCoordinator {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = VideoImporter.contentTypes
         panel.allowsMultipleSelection = false
-        panel.message = "Choisis une vidéo à éditer"
+        panel.message = String(localized: "Choose a video to edit")
         NSApp.activate()
         guard panel.runModal() == .OK, let url = panel.url else { return }
         openVideo(at: url)

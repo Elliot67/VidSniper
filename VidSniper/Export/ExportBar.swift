@@ -8,14 +8,14 @@ struct ExportBar: View {
     var body: some View {
         HStack(alignment: .center, spacing: Theme.spacing * 1.5) {
             VStack(alignment: .leading, spacing: 6) {
-                optionRow("Taille") {
+                optionRow("Size") {
                     ForEach(ExportSize.allCases) { size in
                         ChoiceChip(title: size.label, isSelected: export.size == size) {
                             export.size = size
                         }
                     }
                 }
-                optionRow("Qualité") {
+                optionRow("Quality") {
                     ForEach(ExportQuality.allCases) { quality in
                         ChoiceChip(title: quality.label, isSelected: export.quality == quality) {
                             export.quality = quality
@@ -39,13 +39,13 @@ struct ExportBar: View {
                         // Cadre fixe : la coche n'a ni la largeur ni la hauteur de l'icône de copie.
                         Image(systemName: export.justCopied ? "checkmark" : "doc.on.doc")
                             .frame(width: 16, height: 14)
-                        Text(export.justCopied ? "Copiée" : "Copier")
+                        Text(export.justCopied ? "Copied" : "Copy")
                     }
                     .frame(minWidth: 96, alignment: .leading)
                 }
                 .buttonStyle(AccentButtonStyle())
                 .disabled(export.readyURL == nil)
-                .help("Copier la vidéo pour la coller dans Slack, Jira… (⌘C)")
+                .help("Copy the video to paste it into Slack, Jira… (⌘C)")
 
                 Button {
                     export.saveAs()
@@ -53,13 +53,13 @@ struct ExportBar: View {
                     HStack(spacing: 6) {
                         Image(systemName: "square.and.arrow.down")
                             .frame(width: 16, height: 14)
-                        Text("Enregistrer…")
+                        Text("Save…")
                     }
                     .frame(minWidth: 96, alignment: .leading)
                 }
                 .buttonStyle(SecondaryButtonStyle())
                 .disabled(export.readyURL == nil)
-                .help("Enregistrer une copie de la vidéo (⌘S)")
+                .help("Save a copy of the video (⌘S)")
             }
             .focusable(false)
         }
@@ -74,7 +74,7 @@ struct ExportBar: View {
         )
     }
 
-    private func optionRow<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func optionRow<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: 6) {
             Text(title)
                 .font(.system(size: 11))
@@ -89,7 +89,7 @@ struct ExportBar: View {
     private var summary: some View {
         VStack(alignment: .leading, spacing: 3) {
             if let plan = export.plan {
-                Text("\(plan.width) × \(plan.height) · MP4")
+                Text(verbatim: "\(plan.width) × \(plan.height) · MP4")
                     .font(.system(size: 12).monospacedDigit())
                     .foregroundStyle(Theme.textNormal)
             }
@@ -109,10 +109,10 @@ struct ExportBar: View {
     private var sizeText: String {
         switch export.status {
         case .ready(_, let bytes):
-            return "Poids : \(Self.format(bytes))"
+            return String(localized: "Size: \(Self.format(bytes))")
         default:
             guard let plan = export.plan else { return "" }
-            return "Estimation : ≈ \(Self.format(plan.estimatedBytes))"
+            return String(localized: "Estimate: ≈ \(Self.format(plan.estimatedBytes))")
         }
     }
 
@@ -141,14 +141,14 @@ struct ExportBar: View {
                         .progressViewStyle(.linear)
                         .tint(Theme.accent)
                         .frame(width: 64)
-                    Text("Export…")
+                    Text("Exporting…")
                         .font(.system(size: 10))
                         .foregroundStyle(.white)
                 }
             case .ready:
                 VStack {
                     Spacer()
-                    Label("Glisser", systemImage: "hand.draw")
+                    Label("Drag", systemImage: "hand.draw")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
@@ -174,7 +174,7 @@ struct ExportBar: View {
         if let url = export.readyURL {
             tile
                 .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
-                .help("Glisse la vidéo vers Slack, Jira…")
+                .help("Drag the video into Slack, Jira…")
         } else {
             tile
         }

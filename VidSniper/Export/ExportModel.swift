@@ -202,7 +202,7 @@ final class ExportModel {
             }
             try FileManager.default.copyItem(at: url, to: destination)
         } catch {
-            status = .failed("Enregistrement impossible : \(error.localizedDescription)")
+            status = .failed(String(localized: "Couldn't save: \(error.localizedDescription)"))
         }
     }
 }

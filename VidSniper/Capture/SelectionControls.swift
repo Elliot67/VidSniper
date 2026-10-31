@@ -22,11 +22,11 @@ struct SelectionControls: View {
         HStack(spacing: 8) {
             ToggleChip(
                 isOn: Binding(get: { state.isFullScreen }, set: { _ in onToggleFullScreen() }),
-                title: state.isFullScreen ? "Quitter le plein écran" : "Plein écran",
+                title: state.isFullScreen ? String(localized: "Exit Full Screen") : String(localized: "Full Screen"),
                 onIcon: "arrow.down.right.and.arrow.up.left",
                 offIcon: "arrow.up.left.and.arrow.down.right"
             )
-            .help(state.isFullScreen ? "Revenir à la zone précédente" : "Enregistrer tout l'écran")
+            .help(state.isFullScreen ? "Back to the previous area" : "Record the whole screen")
 
             separator
 
@@ -35,27 +35,27 @@ struct SelectionControls: View {
                     get: { options.microphone && microphoneAvailable },
                     set: { options.microphone = $0 }
                 ),
-                title: "Micro",
+                title: String(localized: "Microphone"),
                 onIcon: "mic.fill",
                 offIcon: "mic.slash.fill"
             )
             .disabled(!microphoneAvailable)
-            .help(microphoneAvailable ? "Enregistrer le micro" : "Micro non autorisé (voir la fenêtre principale)")
+            .help(microphoneAvailable ? "Record the microphone" : "Microphone not allowed (see the main window)")
 
             ToggleChip(
                 isOn: $options.systemAudio,
-                title: "Son système",
+                title: String(localized: "System audio"),
                 onIcon: "speaker.wave.2.fill",
                 offIcon: "speaker.slash.fill"
             )
 
             separator
 
-            Button("Annuler", action: onCancel)
+            Button("Cancel", action: onCancel)
                 .buttonStyle(SecondaryButtonStyle())
 
             Button(action: onRecord) {
-                Label("Enregistrer", systemImage: "record.circle")
+                Label("Record", systemImage: "record.circle")
             }
             .buttonStyle(AccentButtonStyle())
             .disabled(!state.hasSelection)

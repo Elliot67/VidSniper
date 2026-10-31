@@ -28,34 +28,34 @@ struct AnnotationBar: View {
         HStack(spacing: 8) {
             ToggleChip(
                 isOn: Binding(get: { document.isDrawingAnnotation }, set: { _ in document.toggleAnnotationDrawing() }),
-                title: "Tracer",
+                title: String(localized: "Draw"),
                 onIcon: "pencil.tip",
                 offIcon: "pencil.tip"
             )
-            .help("Tracer une annotation : glisser sur la vidéo")
+            .help("Draw an annotation: drag over the video")
 
             separator
 
             optionButton(
                 isSelected: targetStyle == .frame,
                 icon: "rectangle.dashed",
-                title: "Cadre",
-                help: "Rendu : contour coloré autour de la zone"
+                title: "Frame",
+                help: "Look: colored outline around the area"
             ) {
                 document.setAnnotationStyle(.frame)
             }
             optionButton(
                 isSelected: targetStyle == .spotlight,
                 icon: "light.max",
-                title: "Projecteur",
-                help: "Rendu : tout est assombri sauf la zone"
+                title: "Spotlight",
+                help: "Look: everything is dimmed except the area"
             ) {
                 document.setAnnotationStyle(.spotlight)
             }
 
             separator
 
-            optionButton(isSelected: targetShape == .rectangle, icon: "rectangle", title: nil, help: "Rectangle arrondi") {
+            optionButton(isSelected: targetShape == .rectangle, icon: "rectangle", title: nil, help: "Rounded rectangle") {
                 document.setAnnotationShape(.rectangle)
             }
             optionButton(isSelected: targetShape == .ellipse, icon: "circle", title: nil, help: "Ellipse") {
@@ -73,7 +73,7 @@ struct AnnotationBar: View {
             }
             .disabled(!colorApplies)
             .opacity(colorApplies ? 1 : 0.35)
-            .help(colorApplies ? "Couleur du cadre" : "Un projecteur n'a pas de couleur")
+            .help(colorApplies ? "Frame color" : "A spotlight has no color")
 
             separator
 
@@ -82,7 +82,7 @@ struct AnnotationBar: View {
             }
             .buttonStyle(IconButtonStyle())
             .disabled(document.selectedAnnotationID == nil)
-            .help("Supprimer l'annotation sélectionnée (⌫)")
+            .help("Delete the selected annotation (⌫)")
 
             Spacer(minLength: 0)
 
@@ -102,8 +102,8 @@ struct AnnotationBar: View {
     private func optionButton(
         isSelected: Bool,
         icon: String,
-        title: String?,
-        help: String,
+        title: LocalizedStringKey?,
+        help: LocalizedStringKey,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
