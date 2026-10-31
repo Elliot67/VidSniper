@@ -213,8 +213,8 @@ But : mettre un élément en avant simplement, sans outil de dessin complexe.
 - ~~Que le gain audio (> 100 %) soit appliqué à l'export~~ : validé.
 - Que l'app reste bien sans fenêtre quand elle est lancée à l'ouverture de session (à vérifier depuis l'app installée dans `/Applications`, après avoir coupé puis réactivé l'option depuis celle-ci).
 
-## Pistes pour plus tard (hors plan)
+## Idées écartées (décision de l'utilisateur)
 
-- **Garder les clics avec l'enregistrement** : aujourd'hui ils ne vivent qu'en mémoire, ils sont perdus si on quitte l'app avant de rouvrir l'éditeur. Un petit fichier JSON à côté du `.mov` suffirait.
-- **Historique des derniers enregistrements** dans la fenêtre principale (rouvrir l'un d'eux dans les 24 h avant la purge) ; aujourd'hui seul le dernier est accessible.
-- **Garder le montage** (coupes, annotations, réglages) quand on ferme puis rouvre l'éditeur : aujourd'hui, rouvrir repart de la vidéo brute.
+- **Garder les clics avec l'enregistrement** (fichier à côté du `.mov`) : non. Les clics ne vivent qu'en mémoire.
+- **Historique des derniers enregistrements** dans la fenêtre principale : non, seul le dernier est accessible.
+- **Garder le montage à la réouverture / après un plantage** (sauvegarde automatique en JSON + mémoriser la dernière vidéo ouverte) : écarté pour l'instant. Faisable simplement si besoin plus tard : l'état du montage (`EditState`) tient en un seul objet.
