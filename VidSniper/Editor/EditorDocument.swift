@@ -1,11 +1,10 @@
 import AVFoundation
 import Observation
 
-/// Un morceau conservé de la vidéo source. `limit` borne le rognage : un segment issu d'une découpe
-/// ne peut pas déborder sur la partie voisine.
+/// Un morceau conservé de la vidéo source. Jusqu'où il peut être rallongé dépend de ses voisins du moment
+/// (voir `EditorDocument.limit(ofSegment:)`) : supprimer un voisin rend sa partie récupérable.
 struct Segment: Equatable {
     var range: CMTimeRange
-    let limit: CMTimeRange
 }
 
 /// L'état annulable du montage.
@@ -107,6 +106,8 @@ final class EditorDocument {
     @ObservationIgnored private var videoDisplaySize: CGSize = .zero
     /// Durée de la vidéo source (borne des annotations).
     @ObservationIgnored private(set) var sourceDuration: Double = 0
+    /// Toute la vidéo source : borne des segments au début et à la fin du montage.
+    @ObservationIgnored private var sourceTimeRange = CMTimeRange.zero
     private(set) var pendingTrim: PendingTrim?
     /// Image de la source au nouveau bord quand on rallonge un clip (elle n'est pas dans le montage).
     private(set) var trimPreviewFrame: CGImage?
@@ -250,7 +251,8 @@ final class EditorDocument {
             }
 
             let full = CMTimeRange(start: .zero, duration: duration)
-            state.segments = [Segment(range: full, limit: full)]
+            sourceTimeRange = full
+            state.segments = [Segment(range: full)]
             observePlayer()
             rebuild(seekTo: 0)
             isReady = true
@@ -518,15 +520,20 @@ final class EditorDocument {
         else { return }
 
         let split = segment.range.start + cmTime(offset)
-        let left = Segment(
-            range: CMTimeRange(start: segment.range.start, end: split),
-            limit: CMTimeRange(start: segment.limit.start, end: split)
-        )
-        let right = Segment(
-            range: CMTimeRange(start: split, end: segment.range.end),
-            limit: CMTimeRange(start: split, end: segment.limit.end)
-        )
+        let left = Segment(range: CMTimeRange(start: segment.range.start, end: split))
+        let right = Segment(range: CMTimeRange(start: split, end: segment.range.end))
         apply { $0.segments.replaceSubrange(index...index, with: [left, right]) }
+    }
+
+    /// Jusqu'où un segment peut être rallongé, dans la source : jusqu'à la fin du segment précédent et au début
+    /// du suivant (ou aux bords de la vidéo). Les segments restent dans l'ordre de la source, donc deux
+    /// segments ne se chevauchent jamais, et la partie d'un voisin supprimé redevient accessible.
+    func limit(ofSegment index: Int) -> CMTimeRange {
+        let segments = state.segments
+        guard segments.indices.contains(index) else { return sourceTimeRange }
+        let start = index > 0 ? segments[index - 1].range.end : sourceTimeRange.start
+        let end = index < segments.count - 1 ? segments[index + 1].range.start : sourceTimeRange.end
+        return CMTimeRange(start: start, end: end)
     }
 
     func deleteSelectedSegment() {
@@ -542,17 +549,18 @@ final class EditorDocument {
         if isPlaying { togglePlay() }
         let original = state.segments[index]
         let range = original.range
+        let limit = limit(ofSegment: index)
         let newRange: CMTimeRange
         switch edge {
         case .start:
             let start = min(
-                max(range.start.seconds + delta, original.limit.start.seconds),
+                max(range.start.seconds + delta, limit.start.seconds),
                 range.end.seconds - Self.minimumSegmentDuration
             )
             newRange = CMTimeRange(start: cmTime(start), end: range.end)
         case .end:
             let end = max(
-                min(range.end.seconds + delta, original.limit.end.seconds),
+                min(range.end.seconds + delta, limit.end.seconds),
                 range.start.seconds + Self.minimumSegmentDuration
             )
             newRange = CMTimeRange(start: range.start, end: cmTime(end))

@@ -315,17 +315,17 @@ final class MainWindowController {
     func show<Content: View>(_ content: @autoclosure () -> Content) {
         if window == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 480, height: 340),
+                contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered,
                 defer: false
             )
             window.title = "VidSniper"
             window.isReleasedWhenClosed = false
-            window.contentMinSize = NSSize(width: 420, height: 320)
+            window.contentMinSize = NSSize(width: 520, height: 580)
             window.contentView = NSHostingView(rootView: content())
             window.center()
-            window.setFrameAutosaveName("MainWindow")
+            window.setFrameAutosaveName("MainWindowV2")
             self.window = window
         }
         window?.makeKeyAndOrderFront(nil)

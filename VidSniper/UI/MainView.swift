@@ -1,48 +1,26 @@
 import SwiftUI
 
+/// Page d'accueil : logo, deux actions (enregistrer, importer), dernière vidéo, réglages.
 struct MainView: View {
     @Environment(AppCoordinator.self) private var coordinator
     @Environment(Permissions.self) private var permissions
 
+    @State private var isDropTargeted = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.spacing * 1.5) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("VidSniper")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(Theme.textNormal)
-                Text("Enregistre une zone de l'écran, coupe, partage.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.textMuted)
-            }
-
-            HStack(spacing: Theme.spacing) {
-                Button("Nouvel enregistrement") { coordinator.startSelection() }
-                    .buttonStyle(AccentButtonStyle())
-                    .disabled(!permissions.screenRecording || coordinator.state != .idle)
-                Text(coordinator.shortcut.label)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Theme.textMuted)
-
-                Spacer()
-
-                Button("Importer une vidéo…") { coordinator.importVideo() }
-                    .buttonStyle(SecondaryButtonStyle())
-                    .help("Ouvrir une vidéo existante dans l'éditeur (⌘O, ou glisser le fichier sur la fenêtre)")
-            }
+        VStack(alignment: .leading, spacing: Theme.spacing * 1.75) {
+            header
+            actions
 
             if let error = coordinator.lastError {
-                Text(error)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.error)
+                errorBanner(error)
             }
 
             if let recording = coordinator.lastRecording {
-                lastRecordingPanel(recording)
+                lastRecordingCard(recording)
             }
 
-            permissionsPanel
-
-            launchAtLoginPanel
+            settingsCard
 
             Spacer(minLength: 0)
         }
@@ -51,7 +29,7 @@ struct MainView: View {
         .background(Theme.backgroundPrimary)
         .overlay {
             if isDropTargeted {
-                RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                RoundedRectangle(cornerRadius: 10)
                     .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
                     .padding(8)
                     .allowsHitTesting(false)
@@ -69,81 +47,108 @@ struct MainView: View {
         }
     }
 
-    @State private var isDropTargeted = false
+    // MARK: - En-tête
 
-    /// Permet de rouvrir l'éditeur si on l'a fermé par erreur.
-    private func lastRecordingPanel(_ recording: RecordingResult) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(recording.url.lastPathComponent)
-                    .font(.system(size: 13))
+    private var header: some View {
+        HStack(spacing: 14) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("VidSniper")
+                    .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(Theme.textNormal)
-                Text(audioSummary(recording))
-                    .font(.system(size: 11))
+                Text("Enregistre une zone de l'écran, coupe, partage.")
+                    .font(.system(size: 13))
                     .foregroundStyle(Theme.textMuted)
             }
-            Spacer()
-            Button("Ouvrir l'éditeur") {
-                coordinator.openEditor(recording)
-            }
-            .buttonStyle(SecondaryButtonStyle())
         }
-        .padding(Theme.spacing)
+    }
+
+    // MARK: - Actions
+
+    private var actions: some View {
+        HStack(spacing: Theme.spacing) {
+            ActionTile(
+                icon: "record.circle",
+                title: "Nouvel enregistrement",
+                detail: coordinator.shortcut.label,
+                isPrimary: true,
+                action: coordinator.startSelection
+            )
+            .disabled(!permissions.screenRecording || coordinator.state != .idle)
+            .help(permissions.screenRecording ? "Choisir une zone de l'écran à enregistrer" : "Autorise d'abord l'enregistrement de l'écran")
+
+            ActionTile(
+                icon: "square.and.arrow.down",
+                title: "Importer une vidéo",
+                detail: "⌘O ou glisser un fichier",
+                isPrimary: false,
+                action: coordinator.importVideo
+            )
+            .help("Ouvrir une vidéo existante dans l'éditeur")
+        }
+    }
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+            Text(message)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.system(size: 12))
+        .foregroundStyle(Theme.error)
+        .padding(.horizontal, Theme.spacing)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .fill(Theme.backgroundSecondary)
+                .fill(Theme.error.opacity(0.1))
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .stroke(Theme.border, lineWidth: 1)
-        )
+    }
+
+    // MARK: - Dernière vidéo
+
+    /// Permet de rouvrir l'éditeur si on l'a fermé par erreur.
+    private func lastRecordingCard(_ recording: RecordingResult) -> some View {
+        Card(title: "Dernière vidéo") {
+            SettingsRow(icon: "film", title: recording.url.deletingPathExtension().lastPathComponent, detail: audioSummary(recording)) {
+                Button("Ouvrir") {
+                    coordinator.openEditor(recording)
+                }
+                .buttonStyle(SecondaryButtonStyle())
+            }
+        }
     }
 
     private func audioSummary(_ recording: RecordingResult) -> String {
-        var tracks = [recording.isImported ? "Vidéo importée" : "Vidéo"]
+        var tracks = [recording.isImported ? "Vidéo importée" : "Enregistrement"]
         if recording.hasSystemAudio { tracks.append(recording.audioTitle(microphone: false).lowercased()) }
         if recording.hasMicrophone { tracks.append(recording.audioTitle(microphone: true).lowercased()) }
-        return tracks.joined(separator: " + ")
+        return tracks.joined(separator: " · ")
     }
 
-    /// Réglages : raccourci global et lancement à l'ouverture de session.
-    private var launchAtLoginPanel: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("RÉGLAGES")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Theme.textMuted)
-                .padding(.horizontal, Theme.spacing)
-                .padding(.vertical, 8)
+    // MARK: - Réglages
 
-            Divider().overlay(Theme.border)
-
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Raccourci global")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.textNormal)
-                    Text(coordinator.shortcutMessage ?? "Lance la sélection de zone, puis arrête l'enregistrement.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(coordinator.shortcutMessage == nil ? Theme.textMuted : Theme.error)
-                }
-                Spacer()
+    private var settingsCard: some View {
+        Card(title: "Réglages") {
+            SettingsRow(
+                icon: "keyboard",
+                title: "Raccourci global",
+                detail: coordinator.shortcutMessage ?? "Lance la sélection de zone, puis arrête l'enregistrement.",
+                detailIsError: coordinator.shortcutMessage != nil
+            ) {
                 shortcutRecorder
             }
-            .padding(.horizontal, Theme.spacing)
-            .padding(.vertical, 9)
 
             Divider().overlay(Theme.border)
 
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Lancer à l'ouverture de session")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.textNormal)
-                    Text("Garde \(coordinator.shortcut.label) disponible sans ouvrir l'app.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Theme.textMuted)
-                }
-                Spacer()
+            SettingsRow(
+                icon: "power",
+                title: "Lancer à l'ouverture de session",
+                detail: "Garde \(coordinator.shortcut.label) disponible sans ouvrir l'app."
+            ) {
                 Toggle("", isOn: Binding(
                     get: { coordinator.launchAtLogin.isEnabled },
                     set: { coordinator.launchAtLogin.setEnabled($0) }
@@ -153,17 +158,31 @@ struct MainView: View {
                 .labelsHidden()
                 .controlSize(.small)
             }
-            .padding(.horizontal, Theme.spacing)
-            .padding(.vertical, 9)
+
+            Divider().overlay(Theme.border)
+
+            SettingsRow(
+                icon: "rectangle.dashed.badge.record",
+                title: "Enregistrement de l'écran",
+                detail: "Nécessaire pour capturer une zone."
+            ) {
+                PermissionStatus(granted: permissions.screenRecording, required: true) {
+                    permissions.requestScreenRecording()
+                }
+            }
+
+            Divider().overlay(Theme.border)
+
+            SettingsRow(
+                icon: "mic",
+                title: "Micro",
+                detail: "Optionnel, pour enregistrer ta voix."
+            ) {
+                PermissionStatus(granted: permissions.microphone == .authorized, required: false) {
+                    Task { await permissions.requestMicrophone() }
+                }
+            }
         }
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .fill(Theme.backgroundSecondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .stroke(Theme.border, lineWidth: 1)
-        )
     }
 
     /// Une seule pastille : clic sur le raccourci pour en taper un nouveau (Esc pour annuler),
@@ -213,80 +232,141 @@ struct MainView: View {
         )
         .onDisappear { coordinator.endShortcutRecording() }
     }
+}
 
-    private var permissionsPanel: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("PERMISSIONS")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Theme.textMuted)
-                .padding(.horizontal, Theme.spacing)
-                .padding(.vertical, 8)
+/// Grande tuile d'action de la page d'accueil (icône, titre, détail).
+private struct ActionTile: View {
+    let icon: String
+    let title: String
+    let detail: String
+    let isPrimary: Bool
+    let action: () -> Void
 
-            Divider().overlay(Theme.border)
+    @State private var isHovered = false
+    @Environment(\.isEnabled) private var isEnabled
 
-            PermissionRow(
-                title: "Enregistrement de l'écran",
-                granted: permissions.screenRecording,
-                action: { permissions.requestScreenRecording() }
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(isPrimary ? Color.white : Theme.accent)
+                Spacer(minLength: 0)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(isPrimary ? Color.white : Theme.textNormal)
+                    Text(detail)
+                        .font(.system(size: 11, design: isPrimary ? .monospaced : .default))
+                        .foregroundStyle(isPrimary ? Color.white.opacity(0.75) : Theme.textMuted)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(fill)
             )
-
-            Divider().overlay(Theme.border)
-
-            PermissionRow(
-                title: "Micro",
-                detail: "Optionnel",
-                granted: permissions.microphone == .authorized,
-                required: false,
-                action: { Task { await permissions.requestMicrophone() } }
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(isPrimary ? Color.clear : Theme.border, lineWidth: 1)
             )
+            .contentShape(RoundedRectangle(cornerRadius: 10))
         }
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .fill(Theme.backgroundSecondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .stroke(Theme.border, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.45)
+        .onHover { isHovered = $0 }
+    }
+
+    private var fill: Color {
+        if isPrimary { return isHovered && isEnabled ? Theme.accentHover : Theme.accent }
+        return isHovered && isEnabled ? Theme.border.opacity(0.6) : Theme.backgroundSecondary
     }
 }
 
-private struct PermissionRow: View {
+/// Carte avec un titre de section et des lignes séparées par de fins traits.
+private struct Card<Content: View>: View {
     let title: String
-    var detail: String? = nil
-    let granted: Bool
-    var required = true
-    let action: () -> Void
-
-    private var statusColor: Color {
-        if granted { return Theme.success }
-        return required ? Theme.error : Theme.textMuted
-    }
+    @ViewBuilder let content: Content
 
     var body: some View {
-        HStack {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 7, height: 7)
-            Text(title)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Theme.textMuted)
+                .padding(.leading, 2)
+            VStack(alignment: .leading, spacing: 0) {
+                content
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Theme.backgroundSecondary)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
+        }
+    }
+}
+
+/// Ligne de réglage : icône alignée, titre et détail, contrôle à droite.
+private struct SettingsRow<Trailing: View>: View {
+    let icon: String
+    let title: String
+    let detail: String
+    var detailIsError = false
+    @ViewBuilder let trailing: Trailing
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
                 .font(.system(size: 13))
-                .foregroundStyle(Theme.textNormal)
-            if let detail {
+                .foregroundStyle(Theme.textMuted)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textNormal)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Text(detail)
                     .font(.system(size: 11))
-                    .foregroundStyle(Theme.textMuted)
+                    .foregroundStyle(detailIsError ? Theme.error : Theme.textMuted)
+                    .lineLimit(2)
             }
-            Spacer()
-            if granted {
+            Spacer(minLength: Theme.spacing)
+            trailing
+        }
+        .padding(.horizontal, Theme.spacing)
+        .padding(.vertical, 10)
+    }
+}
+
+/// État d'une permission : "Accordé" (point vert), ou bouton "Autoriser" (point rouge si obligatoire).
+private struct PermissionStatus: View {
+    let granted: Bool
+    let required: Bool
+    let action: () -> Void
+
+    var body: some View {
+        if granted {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Theme.success)
+                    .frame(width: 7, height: 7)
                 Text("Accordé")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textMuted)
-            } else {
+            }
+        } else {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(required ? Theme.error : Theme.textMuted)
+                    .frame(width: 7, height: 7)
                 Button("Autoriser", action: action)
                     .buttonStyle(SecondaryButtonStyle())
             }
         }
-        .padding(.horizontal, Theme.spacing)
-        .padding(.vertical, 9)
     }
 }

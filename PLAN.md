@@ -16,6 +16,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 4 (bonus) | Installation dans `/Applications`, réglage du raccourci global, icône de l'app | Fait |
 | 4 (bonus) | Annotations (cadre / projecteur, rectangle / ellipse, couleurs) sur une plage de temps, timeline retravaillée, aide des raccourcis | Fait |
 | 5 | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur (version de base, sans clics) | Fait |
+| 6 | Finitions : récupérer une partie supprimée en rallongeant un voisin, clics dans l'aperçu de rallonge, page d'accueil refaite avec le logo | Fait |
 | - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
 ### Import de vidéo (phase 5)
@@ -60,11 +61,13 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 
 ## Fenêtre principale
 
-- Bouton "Nouvel enregistrement" + rappel du raccourci.
-- Panneau des permissions :
-  - **Enregistrement de l'écran** : obligatoire (point rouge tant qu'il n'est pas accordé).
+- **En-tête** : logo de l'app (icône), nom et phrase de présentation.
+- **Deux tuiles d'action** côte à côte : "Nouvel enregistrement" (violette, avec le raccourci) et "Importer une vidéo" (secondaire, rappel de ⌘O et du glisser-déposer). Survol marqué. Glisser une vidéo n'importe où sur la fenêtre l'ouvre aussi (cadre violet en pointillés).
+- Erreurs dans un bandeau rouge discret.
+- Carte **"Dernière vidéo"** : nom, type et pistes, bouton "Ouvrir".
+- Carte **"Réglages"**, lignes avec icône alignée, titre, détail et contrôle à droite :
+  - **Enregistrement de l'écran** : obligatoire (point rouge et bouton "Autoriser" tant qu'il n'est pas accordé).
   - **Micro** : **optionnel** (point gris). Sans autorisation, l'interrupteur Micro est désactivé et l'enregistrement se fait sans piste micro.
-- Panneau **Réglages** :
   - **Raccourci global** (⇧⌘8 par défaut) : clic sur le raccourci, puis taper le nouveau (au moins ⌘, ⌥ ou ⌃ ; Esc annule). Le raccourci actuel est suspendu pendant la saisie. S'il est déjà pris par une autre app, il est refusé avec un message. Une petite croix intégrée à la même pastille (visible seulement si le raccourci a été changé) revient à ⇧⌘8. Libellé dans l'ordre macOS (⌃⌥⇧⌘), touche telle qu'imprimée sur le clavier (AZERTY compris).
   - **"Lancer à l'ouverture de session"** (`SMAppService`) : l'app démarre sans fenêtre et le raccourci est disponible tout de suite. Un raccourci global n'existe que si l'app tourne, c'est une limite de macOS. À activer depuis l'app installée dans `/Applications` (l'option pointe vers l'emplacement de l'app qui l'active).
 - Fermer la fenêtre ne quitte pas l'app (le raccourci reste actif). Clic sur l'icône du Dock pour la rouvrir, ⌘Q pour quitter.
@@ -131,10 +134,11 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
   - Lignes à pastille (pistes audio, clics) : 35 pt et 30 pt de haut, pour garder environ 5 pt de marge autour de la pastille.
   - **Une ligne de niveau sonore par piste** (son système, puis micro), pour repérer où couper. Elles suivent le montage. Lecture seule. Calcul : crête par tranche de 1/50 s, normalisée par piste, en décibels (-40 dB → vide) pour que les sons faibles se voient.
   - Clic ou glisser sur la timeline : déplace la tête de lecture et sélectionne le segment cliqué.
-  - Chaque segment a deux poignées de rognage, qui couvrent aussi les lignes de son. Un segment issu d'une découpe ne peut pas déborder sur la partie voisine (bornes mémorisées à la découpe). Durée minimale 0,1 s.
+  - Chaque segment a deux poignées de rognage, qui couvrent aussi les lignes de son. Durée minimale 0,1 s.
+  - **Limite de rallonge calculée d'après les voisins du moment** (`limit(ofSegment:)`) : un segment peut s'étendre jusqu'à la fin du segment précédent et au début du suivant dans la source, ou jusqu'aux bords de la vidéo. Deux segments ne se chevauchent jamais (pas de passage en double), et **supprimer un segment rend sa partie récupérable** en rallongeant un voisin. Les segments restent toujours dans l'ordre de la source (pas de réordonnancement), ce qui garantit ce calcul.
   - **Rognage en aperçu** : pendant le glisser, le clip garde sa taille et sa position (les autres clips ne bougent pas). Le rognage ne s'applique qu'au relâchement. On peut rogner en plusieurs fois.
     - Raccourcir : la partie retirée est assombrie, la vidéo montre l'image du nouveau bord.
-    - Rallonger : toute la source disponible jusqu'à la limite s'affiche en fond, opaque et en gris (vignettes + son), par-dessus les clips voisins. La portion sélectionnée en tirant la poignée passe en couleur. Un trait en pointillés marque la limite, et la vidéo montre l'image source du nouveau bord.
+    - Rallonger : toute la source disponible jusqu'à la limite s'affiche en fond, opaque et en gris (vignettes + son + repères des clics sur la ligne "Clics"), par-dessus les clips voisins. La portion sélectionnée en tirant la poignée passe en couleur. Un trait en pointillés marque la limite, et la vidéo montre l'image source du nouveau bord.
     - Pendant un rognage, les autres clips sont assombris.
     - **Défilement automatique** : si la souris approche (40 pt) ou dépasse un bord de la timeline pendant un rognage, la timeline défile dans ce sens, d'autant plus vite que la souris va loin. La poignée reste sous la souris.
 - Le montage est une liste de segments de la vidéo source. Pistes audio : gardées ou coupées entièrement.

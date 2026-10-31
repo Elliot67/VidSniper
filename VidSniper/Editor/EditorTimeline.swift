@@ -209,7 +209,7 @@ struct EditorTimeline: View {
     private func leadingMargin(scale: Double) -> CGFloat {
         let starts = document.segmentStarts
         let overhang = document.state.segments.enumerated().map { index, segment in
-            (segment.range.start.seconds - segment.limit.start.seconds - starts[index]) * scale
+            (segment.range.start.seconds - document.limit(ofSegment: index).start.seconds - starts[index]) * scale
         }.max() ?? 0
         return Self.minimumMargin + max(0, overhang)
     }
@@ -220,7 +220,7 @@ struct EditorTimeline: View {
         let duration = document.duration
         let overhang = document.state.segments.enumerated().map { index, segment in
             let end = starts[index] + segment.range.duration.seconds
-            return (end + segment.limit.end.seconds - segment.range.end.seconds - duration) * scale
+            return (end + document.limit(ofSegment: index).end.seconds - segment.range.end.seconds - duration) * scale
         }.max() ?? 0
         return Self.minimumMargin + max(0, overhang)
     }
@@ -487,14 +487,11 @@ struct EditorTimeline: View {
         let color = document.showClicks ? document.clickColor.color : Theme.textMuted
         return Canvas { context, size in
             for click in clicks {
-                let x = click.time * scale
-                context.fill(
-                    Path(CGRect(x: x - 1, y: 4, width: 2, height: size.height - 8)),
-                    with: .color(color)
-                )
-                context.fill(
-                    Path(ellipseIn: CGRect(x: x - 3.5, y: size.height / 2 - 3.5, width: 7, height: 7)),
-                    with: .color(color)
+                Self.drawClickMarker(
+                    in: &context,
+                    x: click.time * scale,
+                    rect: CGRect(origin: .zero, size: size),
+                    color: color
                 )
             }
         }
@@ -502,6 +499,18 @@ struct EditorTimeline: View {
         .background(Theme.backgroundSecondary)
         .opacity(document.showClicks ? 1 : 0.4)
         .allowsHitTesting(false)
+    }
+
+    /// Repère d'un clic (trait + point), dans la ligne "Clics" et dans l'aperçu quand on rallonge un clip.
+    private static func drawClickMarker(in context: inout GraphicsContext, x: CGFloat, rect: CGRect, color: Color) {
+        context.fill(
+            Path(CGRect(x: x - 1, y: rect.minY + 4, width: 2, height: rect.height - 8)),
+            with: .color(color)
+        )
+        context.fill(
+            Path(ellipseIn: CGRect(x: x - 3.5, y: rect.midY - 3.5, width: 7, height: 7)),
+            with: .color(color)
+        )
     }
 
     // MARK: - Annotations
@@ -836,8 +845,9 @@ struct EditorTimeline: View {
         let origin = segment.range.start.seconds
         let keptStart = pending.map { ($0.range.start.seconds - origin) * scale } ?? 0
         let keptEnd = pending.map { ($0.range.end.seconds - origin) * scale } ?? width
-        let limitStart = (segment.limit.start.seconds - origin) * scale
-        let limitEnd = (segment.limit.end.seconds - origin) * scale
+        let limit = document.limit(ofSegment: index)
+        let limitStart = (limit.start.seconds - origin) * scale
+        let limitEnd = (limit.end.seconds - origin) * scale
         let borderColor = isSelected ? Theme.accent : Color.white.opacity(0.7)
 
         return ZStack(alignment: .topLeading) {
@@ -853,7 +863,7 @@ struct EditorTimeline: View {
             if let pending {
                 // Source disponible, en gris.
                 if pending.edge == .start, limitStart < 0 {
-                    sourcePreview(from: segment.limit.start.seconds, width: -limitStart, scale: scale, active: false)
+                    sourcePreview(from: limit.start.seconds, width: -limitStart, scale: scale, active: false)
                         .offset(x: limitStart)
                 }
                 if pending.edge == .end, limitEnd > width {
@@ -903,6 +913,15 @@ struct EditorTimeline: View {
         let thumbnails = document.sourceThumbnails
         let interval = document.sourceThumbnailInterval
         let tileWidth = Self.thumbnailHeight * document.videoAspectRatio
+        // Clics de la source dans cette portion, dessinés sur la ligne "Clics" (juste sous les pistes).
+        let showsClicks = showsClicksLane
+        let sourceEnd = source + width / scale
+        let clickTimes = showsClicks
+            ? document.recording.clicks.map(\.time).filter { $0 >= source && $0 <= sourceEnd }
+            : []
+        let clickColor = document.showClicks ? document.clickColor.color : Theme.textMuted
+        let tracksHeight = tracksHeight
+        let height = tracksHeight + (showsClicks ? Self.clicksLaneHeight : 0)
 
         return Canvas { context, size in
             Self.drawThumbnails(
@@ -910,6 +929,14 @@ struct EditorTimeline: View {
                 rect: CGRect(x: 0, y: 0, width: size.width, height: Self.thumbnailHeight),
                 source: source, scale: scale, tileWidth: tileWidth
             )
+            for time in clickTimes {
+                Self.drawClickMarker(
+                    in: &context,
+                    x: (time - source) * scale,
+                    rect: CGRect(x: 0, y: tracksHeight, width: size.width, height: Self.clicksLaneHeight),
+                    color: clickColor
+                )
+            }
             for (lane, envelope) in envelopes.enumerated() {
                 guard let envelope else { continue }
                 let y = Self.thumbnailHeight + Self.rowSpacing + CGFloat(lane) * (Self.laneHeight + Self.rowSpacing)
@@ -924,7 +951,7 @@ struct EditorTimeline: View {
                 )
             }
         }
-        .frame(width: width, height: tracksHeight)
+        .frame(width: width, height: height)
         .saturation(active ? 1 : 0)
         .opacity(active ? 1 : 0.55)
         .background(Theme.backgroundPrimary)
