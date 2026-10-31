@@ -139,14 +139,16 @@ struct IconButtonStyle: ButtonStyle {
 
 /// Bouton secondaire, fond discret et bordure fine.
 struct SecondaryButtonStyle: ButtonStyle {
+    /// Mêmes dimensions qu'`AccentButtonStyle`, pour un bouton secondaire placé à côté d'un bouton principal.
+    var large = false
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12))
+            .font(large ? .system(size: 13, weight: .medium) : .system(size: 12))
             .foregroundStyle(Theme.textNormal)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
+            .padding(.horizontal, large ? 14 : 10)
+            .padding(.vertical, large ? 7 : 5)
             .background(
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)
                     .fill(configuration.isPressed ? Theme.border : Theme.backgroundPrimary)

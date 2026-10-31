@@ -59,6 +59,7 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 - Dans le code : les littéraux SwiftUI (`Text("…")`, `Button`, `Label`, `.help`) sont traduits automatiquement. Tout texte qui passe par une variable `String` (titres des composants `ToggleChip`, `ActionTile`, `Card`, `SettingsRow`, cellules de la timeline, erreurs, textes dessinés en AppKit) passe par `String(localized: "…")`. Ce qui ne se traduit pas (nom de l'app, durées, dimensions) utilise `Text(verbatim:)`.
 - Interpolations : `"Size: \(x)"` donne la clé `Size: %@` (`%lld` pour un entier) ; avec plusieurs valeurs, la traduction peut les réordonner (`%1$@`, `%2$@`).
 - Ajouter un texte : l'écrire en anglais dans le code, puis ajouter la traduction dans le catalogue (Xcode le complète à chaque build quand le projet est ouvert dans Xcode ; en ligne de commande, les clés extraites sont dans les fichiers `.stringsdata` du dossier `build/`).
+- Les libellés n'ont pas la même longueur selon la langue : les boutons "Copier" et "Enregistrer…" de l'export prennent tous les deux la largeur du plus long (retour de test en anglais, où "Copy" était plus large que "Save…"). Ils ont aussi la même hauteur, la même police et la même position d'icône : `SecondaryButtonStyle(large: true)` reprend les dimensions d'`AccentButtonStyle`.
 - Le nom des fichiers enregistrés suit aussi la langue ("2026-10-31 at 14.03.22" / "2026-10-31 à 14.03.22").
 
 ### Distribution (gratuite, sans App Store)

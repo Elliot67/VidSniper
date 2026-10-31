@@ -41,7 +41,7 @@ struct ExportBar: View {
                             .frame(width: 16, height: 14)
                         Text(export.justCopied ? "Copied" : "Copy")
                     }
-                    .frame(minWidth: 96, alignment: .leading)
+                    .frame(minWidth: 96, maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(AccentButtonStyle())
                 .disabled(export.readyURL == nil)
@@ -51,16 +51,18 @@ struct ExportBar: View {
                     export.saveAs()
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "square.and.arrow.down")
+                        Image(systemName: "arrow.down.doc")
                             .frame(width: 16, height: 14)
                         Text("Save…")
                     }
-                    .frame(minWidth: 96, alignment: .leading)
+                    .frame(minWidth: 96, maxWidth: .infinity, alignment: .leading)
                 }
-                .buttonStyle(SecondaryButtonStyle())
+                .buttonStyle(SecondaryButtonStyle(large: true))
                 .disabled(export.readyURL == nil)
                 .help("Save a copy of the video (⌘S)")
             }
+            // Les deux boutons prennent la largeur du plus long libellé (qui change avec la langue).
+            .fixedSize(horizontal: true, vertical: false)
             .focusable(false)
         }
         .padding(Theme.spacing)
