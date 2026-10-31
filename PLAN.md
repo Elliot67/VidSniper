@@ -13,7 +13,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 2 | Éditeur : lecture, trim, cuts, pistes audio, raccourcis clavier, annuler, timeline zoomable | Fait |
 | 3 | Export : réglages, estimation, glisser, copier, enregistrer, cache ; niveaux audio automatiques + balance | Fait |
 | 4 (bonus) | Mise en évidence des clics | Fait (animation à valider) |
-| 4 (bonus) | Installation dans `/Applications`, vérification du lancement à l'ouverture de session, réglage du raccourci global, icône de l'app | À faire (prochaine étape) |
+| 4 (bonus) | Installation dans `/Applications`, réglage du raccourci global, icône de l'app | Fait (à tester) |
 | 4 (bonus) | Rectangle/ellipse sur une plage de temps, remplacement d'une piste audio | À faire |
 | 5 (plus tard, à la fin) | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur | À faire |
 
@@ -43,6 +43,8 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 - `xcodegen` (génère le projet), puis `xcodebuild` (build Debug dans `build/Debug/VidSniper.app`).
 - Relancer l'app : `pkill -x VidSniper; sleep 1; open build/Debug/VidSniper.app` (le `sleep` évite l'erreur -600).
 - Prérequis signature : le certificat intermédiaire Apple **WWDR G3** (https://www.apple.com/certificateauthority/) doit être installé, sinon le certificat de dev est considéré invalide.
+- **Installation** : `./scripts/install.sh` (à lancer soi-même, hors sandbox) compile en Release, remplace `/Applications/VidSniper.app` et la lance. Même signature que le build de dev : les permissions restent accordées.
+- **Icône** : générée par `scripts/make-icon.swift` (fond sombre façon Obsidian, coins de sélection, viseur violet, point rouge d'enregistrement), qui écrit toutes les tailles dans `VidSniper/Resources/Assets.xcassets/AppIcon.appiconset`. À relancer seulement pour modifier l'icône.
 
 ## UI : style Obsidian
 
@@ -57,7 +59,9 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 - Panneau des permissions :
   - **Enregistrement de l'écran** : obligatoire (point rouge tant qu'il n'est pas accordé).
   - **Micro** : **optionnel** (point gris). Sans autorisation, l'interrupteur Micro est désactivé et l'enregistrement se fait sans piste micro.
-- Option **"Lancer à l'ouverture de session"** (`SMAppService`) : l'app démarre sans fenêtre et ⌘⇧8 est disponible tout de suite. Un raccourci global n'existe que si l'app tourne, c'est une limite de macOS.
+- Panneau **Réglages** :
+  - **Raccourci global** (⇧⌘8 par défaut) : clic sur le raccourci, puis taper le nouveau (au moins ⌘, ⌥ ou ⌃ ; Esc annule). Le raccourci actuel est suspendu pendant la saisie. S'il est déjà pris par une autre app, il est refusé avec un message. Une petite croix intégrée à la même pastille (visible seulement si le raccourci a été changé) revient à ⇧⌘8. Libellé dans l'ordre macOS (⌃⌥⇧⌘), touche telle qu'imprimée sur le clavier (AZERTY compris).
+  - **"Lancer à l'ouverture de session"** (`SMAppService`) : l'app démarre sans fenêtre et le raccourci est disponible tout de suite. Un raccourci global n'existe que si l'app tourne, c'est une limite de macOS. À activer depuis l'app installée dans `/Applications` (l'option pointe vers l'emplacement de l'app qui l'active).
 - Fermer la fenêtre ne quitte pas l'app (le raccourci reste actif). Clic sur l'icône du Dock pour la rouvrir, ⌘Q pour quitter.
 
 ### Demande macOS "contourner le sélecteur de fenêtre privée"

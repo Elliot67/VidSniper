@@ -39,3 +39,5 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.elintz.VidSniper
         GENERATE_INFOPLIST_FILE: NO
+        # Icône générée par scripts/make-icon.swift.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

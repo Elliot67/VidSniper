@@ -31,11 +31,70 @@ final class AppCoordinator {
     /// Zone en cours d'enregistrement (elle peut être déplacée), pour situer les clics.
     @ObservationIgnored private var trackedRegion: CaptureRegion?
 
-    static let shortcutLabel = "⌘⇧8"
+    // MARK: - Raccourci global
+
+    private(set) var shortcut = Shortcut.saved
+    private(set) var isRecordingShortcut = false
+    private(set) var shortcutMessage: String?
+    @ObservationIgnored private var shortcutMonitor: Any?
+
+    /// Libellé du raccourci, pour les vues qui n'ont pas accès au coordinateur (mini barre).
+    static var shortcutLabel: String { Shortcut.saved.label }
 
     init() {
-        hotKey = HotKey(keyCode: UInt32(kVK_ANSI_8), modifiers: UInt32(cmdKey | shiftKey)) { [weak self] in
-            self?.handleHotKey()
+        let hotKey = HotKey { [weak self] in self?.handleHotKey() }
+        if !hotKey.register(shortcut) {
+            lastError = "Le raccourci \(shortcut.label) est déjà utilisé par une autre app : choisis-en un autre."
+        }
+        self.hotKey = hotKey
+    }
+
+    /// Écoute le prochain raccourci tapé dans l'app. Le raccourci actuel est suspendu pendant ce temps,
+    /// pour pouvoir le retaper sans lancer une capture. Esc annule.
+    func beginShortcutRecording() {
+        guard !isRecordingShortcut else { return }
+        isRecordingShortcut = true
+        shortcutMessage = nil
+        hotKey?.unregister()
+        shortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // Les moniteurs locaux sont appelés sur le thread principal.
+            nonisolated(unsafe) let event = event
+            MainActor.assumeIsolated { self?.recordShortcut(from: event) }
+            return nil
+        }
+    }
+
+    func endShortcutRecording() {
+        guard isRecordingShortcut else { return }
+        if let shortcutMonitor { NSEvent.removeMonitor(shortcutMonitor) }
+        shortcutMonitor = nil
+        isRecordingShortcut = false
+        hotKey?.register(shortcut)
+    }
+
+    private func recordShortcut(from event: NSEvent) {
+        if Int(event.keyCode) == kVK_Escape {
+            endShortcutRecording()
+            return
+        }
+        guard let newShortcut = Shortcut(event: event) else {
+            shortcutMessage = "Il faut au moins ⌘, ⌥ ou ⌃ avec la touche."
+            return
+        }
+        endShortcutRecording()
+        setShortcut(newShortcut)
+    }
+
+    func setShortcut(_ newShortcut: Shortcut) {
+        guard let hotKey else { return }
+        if hotKey.register(newShortcut) {
+            shortcut = newShortcut
+            Shortcut.saved = newShortcut
+            shortcutMessage = nil
+            if lastError?.contains("raccourci") == true { lastError = nil }
+        } else {
+            hotKey.register(shortcut)
+            shortcutMessage = "\(newShortcut.label) est déjà utilisé par une autre app."
         }
     }
 

@@ -19,7 +19,7 @@ struct MainView: View {
                 Button("Nouvel enregistrement") { coordinator.startSelection() }
                     .buttonStyle(AccentButtonStyle())
                     .disabled(!permissions.screenRecording || coordinator.state != .idle)
-                Text(AppCoordinator.shortcutLabel)
+                Text(coordinator.shortcut.label)
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(Theme.textMuted)
             }
@@ -84,27 +84,56 @@ struct MainView: View {
         return tracks.joined(separator: " + ")
     }
 
+    /// Réglages : raccourci global et lancement à l'ouverture de session.
     private var launchAtLoginPanel: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Lancer à l'ouverture de session")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.textNormal)
-                Text("Garde \(AppCoordinator.shortcutLabel) disponible sans ouvrir l'app.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.textMuted)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("RÉGLAGES")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Theme.textMuted)
+                .padding(.horizontal, Theme.spacing)
+                .padding(.vertical, 8)
+
+            Divider().overlay(Theme.border)
+
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Raccourci global")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textNormal)
+                    Text(coordinator.shortcutMessage ?? "Lance la sélection de zone, puis arrête l'enregistrement.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(coordinator.shortcutMessage == nil ? Theme.textMuted : Theme.error)
+                }
+                Spacer()
+                shortcutRecorder
             }
-            Spacer()
-            Toggle("", isOn: Binding(
-                get: { coordinator.launchAtLogin.isEnabled },
-                set: { coordinator.launchAtLogin.setEnabled($0) }
-            ))
-            .toggleStyle(.switch)
-            .tint(Theme.accent)
-            .labelsHidden()
-            .controlSize(.small)
+            .padding(.horizontal, Theme.spacing)
+            .padding(.vertical, 9)
+
+            Divider().overlay(Theme.border)
+
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Lancer à l'ouverture de session")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textNormal)
+                    Text("Garde \(coordinator.shortcut.label) disponible sans ouvrir l'app.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.textMuted)
+                }
+                Spacer()
+                Toggle("", isOn: Binding(
+                    get: { coordinator.launchAtLogin.isEnabled },
+                    set: { coordinator.launchAtLogin.setEnabled($0) }
+                ))
+                .toggleStyle(.switch)
+                .tint(Theme.accent)
+                .labelsHidden()
+                .controlSize(.small)
+            }
+            .padding(.horizontal, Theme.spacing)
+            .padding(.vertical, 9)
         }
-        .padding(Theme.spacing)
         .background(
             RoundedRectangle(cornerRadius: Theme.cornerRadius)
                 .fill(Theme.backgroundSecondary)
@@ -113,6 +142,54 @@ struct MainView: View {
             RoundedRectangle(cornerRadius: Theme.cornerRadius)
                 .stroke(Theme.border, lineWidth: 1)
         )
+    }
+
+    /// Une seule pastille : clic sur le raccourci pour en taper un nouveau (Esc pour annuler),
+    /// croix intégrée pour revenir au raccourci par défaut.
+    private var shortcutRecorder: some View {
+        let isRecording = coordinator.isRecordingShortcut
+        let canReset = coordinator.shortcut != .standard && !isRecording
+
+        return HStack(spacing: 6) {
+            Button {
+                if isRecording {
+                    coordinator.endShortcutRecording()
+                } else {
+                    coordinator.beginShortcutRecording()
+                }
+            } label: {
+                Text(isRecording ? "Tape le raccourci… (Esc)" : coordinator.shortcut.label)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(isRecording ? Theme.accent : Theme.textNormal)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Cliquer, puis taper le nouveau raccourci")
+
+            if canReset {
+                Button {
+                    coordinator.setShortcut(.standard)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.textMuted)
+                }
+                .buttonStyle(.plain)
+                .help("Revenir à \(Shortcut.standard.label)")
+            }
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, canReset ? 6 : 10)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                .fill(Theme.backgroundPrimary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                .stroke(isRecording ? Theme.accent : Theme.border, lineWidth: 1)
+        )
+        .onDisappear { coordinator.endShortcutRecording() }
     }
 
     private var permissionsPanel: some View {
