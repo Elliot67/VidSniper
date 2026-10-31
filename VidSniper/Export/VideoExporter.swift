@@ -20,11 +20,14 @@ enum VideoExporter {
         plan: ExportPlan,
         volumes: [AudioTrackVolume],
         clicks: ClickOverlay?,
+        annotations: AnnotationOverlay?,
         to url: URL,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws {
         try? FileManager.default.removeItem(at: url)
-        let job = try await ExportJob(composition: composition, plan: plan, volumes: volumes, clicks: clicks, url: url)
+        let job = try await ExportJob(
+            composition: composition, plan: plan, volumes: volumes, clicks: clicks, annotations: annotations, url: url
+        )
         try await withTaskCancellationHandler {
             try await job.run(duration: plan.duration, progress: progress)
         } onCancel: {
@@ -33,8 +36,15 @@ enum VideoExporter {
     }
 }
 
-/// Les objets AVFoundation d'un export. Ils ne sont manipulés que par leurs files de travail.
+/// Les objets AVFoundation d'un export. Après la configuration, le lecteur et le writer ne sont
+/// manipulés que sur `queue` (démarrage, lecture des échantillons, annulation).
 private final class ExportJob: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "VidSniper.export")
+    /// Sur `queue` uniquement.
+    private var isCancelled = false
+    /// Pompes en cours (vidéo, audio), à reprendre en cas d'annulation. Sur `queue` uniquement.
+    private var pendingPumps: [Int: CheckedContinuation<Void, Never>] = [:]
+
     private let reader: AVAssetReader
     private let writer: AVAssetWriter
     private let videoOutput: AVAssetReaderVideoCompositionOutput
@@ -49,6 +59,7 @@ private final class ExportJob: @unchecked Sendable {
         plan: ExportPlan,
         volumes: [AudioTrackVolume],
         clicks: ClickOverlay?,
+        annotations: AnnotationOverlay?,
         url: URL
     ) async throws {
         do {
@@ -62,12 +73,14 @@ private final class ExportJob: @unchecked Sendable {
 
         // Composition vidéo à 30 i/s (l'enregistrement est à 60 i/s, variable), rendue directement à la taille
         // d'export : à 75 % ou 50 %, il y a beaucoup moins de pixels à composer puis à encoder.
-        // Avec des clics à dessiner, on passe par Core Image ; sinon, le chemin direct (plus rapide).
+        // Avec des clics ou des annotations à dessiner, on passe par Core Image ; sinon, le chemin direct (plus rapide).
+        let usesEffects = clicks != nil || annotations != nil
         let videoComposition: AVMutableVideoComposition
-        if let clicks {
+        if usesEffects {
             videoComposition = try await VideoEffects.videoComposition(
                 for: UncheckedSendable(composition),
                 clicks: clicks,
+                annotations: annotations,
                 renderSize: renderSize,
                 frameRate: ExportPlan.frameRate
             )
@@ -75,7 +88,7 @@ private final class ExportJob: @unchecked Sendable {
             videoComposition = try await AVMutableVideoComposition.videoComposition(withPropertiesOf: composition)
             videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(ExportPlan.frameRate))
         }
-        if clicks == nil, let track = videoTracks.first {
+        if !usesEffects, let track = videoTracks.first {
             let naturalSize = videoComposition.renderSize
             if naturalSize.width > 0, naturalSize.height > 0, naturalSize != renderSize {
                 let transform = try await track.load(.preferredTransform)
@@ -167,14 +180,18 @@ private final class ExportJob: @unchecked Sendable {
     }
 
     func run(duration: Double, progress: @escaping @Sendable (Double) -> Void) async throws {
-        guard reader.startReading() else { throw ExportError.cannotRead(reader.error) }
-        guard writer.startWriting() else { throw ExportError.cannotWrite(writer.error) }
-        writer.startSession(atSourceTime: .zero)
+        // Démarrage sur la file de travail : une annulation ne peut pas tomber au milieu.
+        try queue.sync {
+            guard !isCancelled else { throw CancellationError() }
+            guard reader.startReading() else { throw ExportError.cannotRead(reader.error) }
+            guard writer.startWriting() else { throw ExportError.cannotWrite(writer.error) }
+            writer.startSession(atSourceTime: .zero)
+        }
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
                 var lastReported = -1.0
-                await self.pump(self.videoOutput, into: self.videoInput, label: "video") { sampleBuffer in
+                await self.pump(self.videoOutput, into: self.videoInput, id: 0) { sampleBuffer in
                     let time = sampleBuffer.presentationTimeStamp
                     let value = duration > 0 ? min(1, time.seconds / duration) : 0
                     if value - lastReported >= 0.01 {
@@ -186,7 +203,7 @@ private final class ExportJob: @unchecked Sendable {
             if let audioOutput, let audioInput {
                 let gain = audioMasterGain
                 group.addTask {
-                    await self.pump(audioOutput, into: audioInput, label: "audio") { sampleBuffer in
+                    await self.pump(audioOutput, into: audioInput, id: 1) { sampleBuffer in
                         applyGain(gain, to: sampleBuffer)
                     }
                 }
@@ -194,43 +211,66 @@ private final class ExportJob: @unchecked Sendable {
         }
 
         try Task.checkCancellation()
-        if reader.status == .failed {
+        let failed = queue.sync { () -> Bool in
+            guard !isCancelled, reader.status == .failed else { return false }
             writer.cancelWriting()
-            throw ExportError.cannotRead(reader.error)
+            return true
         }
+        if failed { throw ExportError.cannotRead(reader.error) }
+        try Task.checkCancellation()
         await writer.finishWriting()
         guard writer.status == .completed else { throw ExportError.cannotWrite(writer.error) }
         progress(1)
     }
 
+    /// Annulation (nouvel export demandé) : passe par la file de travail, entre deux échantillons.
+    /// Appeler `cancelReading` pendant un `copyNextSampleBuffer` sur un autre fil détruisait le lecteur
+    /// en pleine lecture (plantage).
     func cancel() {
-        reader.cancelReading()
-        writer.cancelWriting()
+        queue.async { [self] in
+            guard !isCancelled else { return }
+            isCancelled = true
+            pendingPumps.values.forEach { $0.resume() }
+            pendingPumps.removeAll()
+            reader.cancelReading()
+            writer.cancelWriting()
+        }
     }
 
     /// Recopie les échantillons de la sortie du lecteur vers l'entrée du writer, au rythme du writer.
     /// `onSample` voit (et peut modifier) chaque tampon avant son écriture.
+    /// La vidéo et l'audio passent par la même file de travail que l'annulation.
     private func pump(
         _ output: AVAssetReaderOutput,
         into input: AVAssetWriterInput,
-        label: String,
+        id: Int,
         onSample: ((CMSampleBuffer) -> Void)?
     ) async {
         nonisolated(unsafe) let output = output
         nonisolated(unsafe) let input = input
         nonisolated(unsafe) let onSample = onSample
-        nonisolated(unsafe) let reader = reader
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            input.requestMediaDataWhenReady(on: DispatchQueue(label: "VidSniper.export.\(label)")) {
-                while input.isReadyForMoreMediaData {
-                    guard reader.status == .reading, let sampleBuffer = output.copyNextSampleBuffer() else {
-                        input.markAsFinished()
-                        continuation.resume()
-                        return
-                    }
-                    onSample?(sampleBuffer)
-                    if !input.append(sampleBuffer) {
-                        reader.cancelReading()
+            queue.async { [self] in
+                guard !isCancelled else {
+                    continuation.resume()
+                    return
+                }
+                pendingPumps[id] = continuation
+                input.requestMediaDataWhenReady(on: queue) { [self] in
+                    // Déjà terminé ou annulé : plus rien à lire.
+                    guard pendingPumps[id] != nil else { return }
+                    while input.isReadyForMoreMediaData {
+                        guard !isCancelled, reader.status == .reading,
+                              let sampleBuffer = output.copyNextSampleBuffer()
+                        else {
+                            if !isCancelled { input.markAsFinished() }
+                            pendingPumps.removeValue(forKey: id)?.resume()
+                            return
+                        }
+                        onSample?(sampleBuffer)
+                        if !input.append(sampleBuffer) {
+                            reader.cancelReading()
+                        }
                     }
                 }
             }

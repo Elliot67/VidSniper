@@ -83,15 +83,18 @@ struct EditorTimeline: View {
     }
 
     @State private var trimDrag: TrimDrag?
+    @State private var annotationDrag: AnnotationDrag?
+    @State private var frozenAnnotationRows: [UUID: Int]?
     @State private var autoScrollTask: Task<Void, Never>?
     private static let autoScrollZone: CGFloat = 40
 
     private static let rulerHeight: CGFloat = 18
     private static let thumbnailHeight: CGFloat = 56
-    private static let laneHeight: CGFloat = 30
+    /// Hauteur des lignes à pastille (pistes audio) : la pastille (~25 pt) garde de la marge autour.
+    private static let laneHeight: CGFloat = 35
     private static let rowSpacing: CGFloat = 2
     private static let handleWidth: CGFloat = 10
-    private static let headerWidth: CGFloat = 156
+    private static let headerWidth: CGFloat = 172
     private static let minimumMargin: CGFloat = 12
 
     private enum Lane: Hashable {
@@ -116,8 +119,89 @@ struct EditorTimeline: View {
         Self.thumbnailHeight + CGFloat(lanes.count) * (Self.laneHeight + Self.rowSpacing)
     }
 
+    private static let annotationRowHeight: CGFloat = 22
+    /// Place laissée sous la timeline pour la barre de défilement horizontale.
+    private static let scrollBarSpace: CGFloat = 18
+
+    /// Sous-ligne de chaque annotation : deux annotations qui se chevauchent dans le temps sont sur deux
+    /// sous-lignes différentes, pour que chaque bloc reste attrapable. Figé pendant un glisser.
+    private var annotationRows: [UUID: Int] {
+        if let frozenAnnotationRows { return frozenAnnotationRows }
+        var rowEnds: [Double] = []
+        var rows: [UUID: Int] = [:]
+        for annotation in document.state.annotations.sorted(by: { $0.start < $1.start }) {
+            if let row = rowEnds.firstIndex(where: { $0 <= annotation.start }) {
+                rowEnds[row] = annotation.end
+                rows[annotation.id] = row
+            } else {
+                rowEnds.append(annotation.end)
+                rows[annotation.id] = rowEnds.count - 1
+            }
+        }
+        return rows
+    }
+
+    private var annotationRowCount: Int {
+        max(1, (annotationRows.values.max() ?? 0) + 1)
+    }
+
+    private var annotationLaneHeight: CGFloat {
+        CGFloat(annotationRowCount) * Self.annotationRowHeight
+    }
+
+    private static let clicksLaneHeight: CGFloat = 30
+
+    /// Ligne "Clics" : seulement pour un enregistrement VidSniper (pas de clics pour une vidéo importée).
+    private var showsClicksLane: Bool {
+        !document.recording.isImported
+    }
+
+    /// Hauteur de la ligne "Clics", espace compris.
+    private var clicksLaneSpace: CGFloat {
+        showsClicksLane ? Self.clicksLaneHeight + Self.rowSpacing : 0
+    }
+
+    /// Règle, lignes des segments, ligne des clics, puis ligne des annotations
+    /// (hors segments : ses blocs ont leurs propres poignées).
     private var contentHeight: CGFloat {
-        Self.rulerHeight + Self.rowSpacing + tracksHeight
+        Self.rulerHeight + Self.rowSpacing + tracksHeight + clicksLaneSpace + annotationLaneHeight
+    }
+
+    /// Traits de séparation entre les sections (règle, vidéo, chaque piste audio, sous-lignes d'annotations),
+    /// au milieu de l'espace entre deux lignes. Les mêmes dans la colonne de libellés et dans la timeline.
+    private var separatorPositions: [CGFloat] {
+        var y = Self.rulerHeight + Self.rowSpacing / 2
+        var positions = [y]
+        y += Self.rowSpacing + Self.thumbnailHeight
+        positions.append(y)
+        for _ in lanes {
+            y += Self.rowSpacing + Self.laneHeight
+            positions.append(y)
+        }
+        if showsClicksLane {
+            y += Self.rowSpacing + Self.clicksLaneHeight
+            positions.append(y)
+        }
+        let annotationsTop = y + Self.rowSpacing / 2
+        for row in 1..<max(annotationRowCount, 1) {
+            positions.append(annotationsTop + CGFloat(row) * Self.annotationRowHeight)
+        }
+        return positions
+    }
+
+    /// Traits continus sur toute la largeur (colonne de libellés comprise), par-dessus les blocs.
+    private var separators: some View {
+        ZStack(alignment: .topLeading) {
+            ForEach(Array(separatorPositions.enumerated()), id: \.offset) { _, y in
+                Rectangle()
+                    .fill(Theme.separator)
+                    .frame(height: 1)
+                    .frame(maxWidth: .infinity)
+                    .offset(y: y - 0.5)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .allowsHitTesting(false)
     }
 
     /// Place réservée avant le montage : de quoi rallonger vers la gauche n'importe quel clip rogné,
@@ -145,8 +229,16 @@ struct EditorTimeline: View {
         let scale = document.scale
         let leading = leadingMargin(scale: scale)
 
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 0) {
+            // Colonne de libellés sur un fond distinct, séparée de la timeline par un trait vertical.
             header
+                .frame(height: contentHeight + Self.scrollBarSpace, alignment: .top)
+                .background(Theme.backgroundSecondary)
+                .overlay(alignment: .trailing) {
+                    Rectangle()
+                        .fill(Theme.separator)
+                        .frame(width: 1)
+                }
 
             GeometryReader { geometry in
                 let timelineWidth = document.duration * scale
@@ -180,8 +272,19 @@ struct EditorTimeline: View {
                     document.setViewportWidth(width - 2 * Self.minimumMargin)
                 }
             }
-            .frame(height: contentHeight + 10)
+            // Marge sous le contenu : la barre de défilement horizontale s'affiche par-dessus.
+            .frame(height: contentHeight + Self.scrollBarSpace)
             .background(Theme.backgroundPrimary)
+        }
+        .overlay(alignment: .topLeading) {
+            ZStack(alignment: .topLeading) {
+                separators
+                // Par-dessus les traits : la colonne de balance masque celui qui sépare les deux pistes audio.
+                if lanes.count == 2 {
+                    balanceColumn
+                        .offset(x: Self.headerWidth - Self.balanceColumnWidth, y: audioLanesTop + 0.5)
+                }
+            }
         }
         .onChange(of: document.currentTime) { _, time in
             followPlayhead(time, leading: leading, scale: scale)
@@ -201,37 +304,62 @@ struct EditorTimeline: View {
 
     // MARK: - Colonne de libellés
 
+    /// Colonne de libellés : une cellule par ligne, icônes et textes alignés sur deux colonnes.
+    /// Les pistes audio et les clics sont des cellules cliquables (toute la cellule active / coupe).
     private var header: some View {
         VStack(alignment: .leading, spacing: Self.rowSpacing) {
             Color.clear.frame(height: Self.rulerHeight)
 
-            Label("Vidéo", systemImage: "film")
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.textMuted)
+            TimelineHeaderCell(icon: "film", title: "Vidéo")
                 .frame(height: Self.thumbnailHeight)
 
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: Self.rowSpacing) {
-                    ForEach(lanes, id: \.self) { lane in
-                        laneChip(lane)
-                            .focusable(false)
-                            .frame(height: Self.laneHeight)
-                    }
-                }
-                Spacer(minLength: 0)
-                // Balance entre les deux lignes de son : en haut la première piste ressort, en bas la seconde (la voix).
-                if lanes.count == 2 {
-                    BalanceSlider(
-                        value: Binding(get: { document.balance }, set: { document.balance = $0 }),
-                        defaultValue: EditorDocument.defaultBalance,
-                        isEnabled: document.isBalanceAvailable
-                    )
-                    .frame(width: 16, height: 2 * Self.laneHeight + Self.rowSpacing)
-                    .help(balanceHelp)
-                }
+            ForEach(lanes, id: \.self) { lane in
+                laneCell(lane)
+                    .frame(height: Self.laneHeight)
+                    // Place laissée à la colonne de balance, dessinée par-dessus.
+                    .padding(.trailing, lanes.count == 2 ? Self.balanceColumnWidth : 0)
             }
+
+            if showsClicksLane {
+                clicksCell
+                    .frame(height: Self.clicksLaneHeight)
+            }
+
+            TimelineHeaderCell(icon: "pencil.and.scribble", title: "Annotations")
+                .frame(height: Self.annotationRowHeight)
+                .frame(height: annotationLaneHeight, alignment: .top)
         }
         .frame(width: Self.headerWidth, alignment: .leading)
+    }
+
+    private static let balanceColumnWidth: CGFloat = 26
+
+    /// Haut de la première piste audio (trait de séparation au-dessus).
+    private var audioLanesTop: CGFloat {
+        Self.rulerHeight + Self.rowSpacing + Self.thumbnailHeight + Self.rowSpacing / 2
+    }
+
+    /// Balance entre les deux pistes audio, dans sa propre colonne (fond clair, trait à gauche) :
+    /// en haut la première piste ressort, en bas la seconde (la voix).
+    private var balanceColumn: some View {
+        let height = 2 * (Self.laneHeight + Self.rowSpacing) - 1
+        return ZStack {
+            Rectangle()
+                .fill(Theme.surface)
+            BalanceSlider(
+                value: Binding(get: { document.balance }, set: { document.balance = $0 }),
+                defaultValue: EditorDocument.defaultBalance,
+                isEnabled: document.isBalanceAvailable
+            )
+            .frame(width: 16, height: height - 14)
+        }
+        .frame(width: Self.balanceColumnWidth, height: height)
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Theme.separator)
+                .frame(width: 1)
+        }
+        .help(balanceHelp)
     }
 
     /// Libellé d'une piste ("Son système"/"Micro", ou "Audio 1"/"Audio 2" pour une vidéo importée).
@@ -239,21 +367,21 @@ struct EditorTimeline: View {
         document.recording.audioTitle(microphone: lane == .microphone)
     }
 
-    private func laneChip(_ lane: Lane) -> some View {
+    private func laneCell(_ lane: Lane) -> some View {
         let isMicrophone = lane == .microphone
         let icons = document.recording.audioIcons(microphone: isMicrophone)
         let name = title(lane)
-        return ToggleChip(
-            isOn: Binding(
-                get: { isMicrophone ? document.state.microphone : document.state.systemAudio },
-                set: { isMicrophone ? document.setMicrophone($0) : document.setSystemAudio($0) }
-            ),
+        let isOn = isMicrophone ? document.state.microphone : document.state.systemAudio
+        return TimelineHeaderCell(
+            icon: isOn ? icons.on : icons.off,
             title: name,
-            onIcon: icons.on,
-            offIcon: icons.off
+            isOn: isOn,
+            action: { isMicrophone ? document.setMicrophone(!isOn) : document.setSystemAudio(!isOn) }
         )
+        // Piste sans son : coupée d'office, impossible à réactiver.
+        .disabled(document.isSilent(microphone: isMicrophone))
         .help(document.isSilent(microphone: isMicrophone)
-            ? "Pas de son détecté (\(name))"
+            ? "Pas de son détecté sur cette piste (\(name)) : elle est coupée"
             : "Garder ou couper la piste \(name)")
     }
 
@@ -285,6 +413,10 @@ struct EditorTimeline: View {
                     ForEach(lanes, id: \.self) { lane in
                         waveform(lane, width: timelineWidth, scale: scale)
                     }
+                    if showsClicksLane {
+                        clicksLane(width: timelineWidth, scale: scale)
+                    }
+                    annotationLane(width: timelineWidth, scale: scale)
                 }
 
                 segments(scale: scale)
@@ -294,7 +426,9 @@ struct EditorTimeline: View {
             }
             .offset(x: leading)
         }
-        .frame(width: width, height: contentHeight, alignment: .topLeading)
+        // La marge fait partie du contenu : une ScrollView horizontale prend la hauteur de son contenu,
+        // et sa barre de défilement se place en bas de celui-ci (sinon, sur les annotations).
+        .frame(width: width, height: contentHeight + Self.scrollBarSpace, alignment: .topLeading)
         .contentShape(Rectangle())
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -303,8 +437,209 @@ struct EditorTimeline: View {
                     let time = min(max((value.location.x - leading) / scale, 0), document.duration)
                     document.seek(to: time)
                     document.selectedSegment = document.segmentIndex(at: time)
+                    document.selectedAnnotationID = nil
                 }
         )
+    }
+
+    // MARK: - Clics
+
+    /// Colonne de gauche : la cellule active / coupe la mise en évidence des clics ; la pastille à droite
+    /// choisit leur couleur.
+    private var clicksCell: some View {
+        let isOn = document.showClicks && document.hasClicks
+        return ZStack(alignment: .trailing) {
+            TimelineHeaderCell(
+                icon: isOn ? "cursorarrow.click.2" : "cursorarrow",
+                title: "Clics",
+                isOn: isOn,
+                action: { document.setShowClicks(!document.showClicks) }
+            )
+            .disabled(!document.hasClicks)
+            .help(document.hasClicks ? "Mettre en évidence les clics dans la vidéo" : "Aucun clic pendant l'enregistrement")
+
+            // Couleur des clics, même palette que les annotations.
+            Menu {
+                ForEach(AnnotationColor.allCases) { color in
+                    Button {
+                        document.setClickColor(color)
+                    } label: {
+                        Label(color.label, systemImage: document.clickColor == color ? "checkmark.circle.fill" : "circle.fill")
+                    }
+                }
+            } label: {
+                Circle()
+                    .fill(document.clickColor.color)
+                    .frame(width: 12, height: 12)
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .disabled(!document.hasClicks || !document.showClicks)
+            .help("Couleur des clics")
+            .padding(.trailing, 10)
+        }
+    }
+
+    /// Un repère par clic, à sa place dans le montage. Lecture seule : rien n'est modifiable ici.
+    private func clicksLane(width: CGFloat, scale: Double) -> some View {
+        let clicks = document.compositionClicks
+        let color = document.showClicks ? document.clickColor.color : Theme.textMuted
+        return Canvas { context, size in
+            for click in clicks {
+                let x = click.time * scale
+                context.fill(
+                    Path(CGRect(x: x - 1, y: 4, width: 2, height: size.height - 8)),
+                    with: .color(color)
+                )
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x - 3.5, y: size.height / 2 - 3.5, width: 7, height: 7)),
+                    with: .color(color)
+                )
+            }
+        }
+        .frame(width: width, height: Self.clicksLaneHeight)
+        .background(Theme.backgroundSecondary)
+        .opacity(document.showClicks ? 1 : 0.4)
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Annotations
+
+    private enum AnnotationDragKind {
+        case move, start, end
+    }
+
+    /// Glisser d'un bloc d'annotation : état d'origine et échelle au début du geste.
+    private struct AnnotationDrag {
+        let kind: AnnotationDragKind
+        let original: Annotation
+        let scale: Double
+    }
+
+    /// Un bloc par annotation et par segment où elle est visible (une coupe peut la scinder),
+    /// rangés en sous-lignes pour que les annotations qui se chevauchent ne s'empilent pas.
+    private func annotationLane(width: CGFloat, scale: Double) -> some View {
+        let mapping = document.timeMapping
+        let rows = annotationRows
+        return ZStack(alignment: .topLeading) {
+            Rectangle()
+                .fill(Theme.backgroundSecondary)
+                .frame(width: width, height: annotationLaneHeight)
+
+            ForEach(document.state.annotations) { annotation in
+                let ranges = mapping.compositionRanges(sourceStart: annotation.start, sourceEnd: annotation.end)
+                let row = CGFloat(rows[annotation.id] ?? 0)
+                ForEach(Array(ranges.enumerated()), id: \.offset) { _, range in
+                    annotationBlock(annotation, range: range, scale: scale)
+                        .offset(x: range.lowerBound * scale, y: row * Self.annotationRowHeight)
+                }
+            }
+        }
+        .frame(width: width, height: annotationLaneHeight, alignment: .topLeading)
+    }
+
+    private func annotationBlock(_ annotation: Annotation, range: ClosedRange<Double>, scale: Double) -> some View {
+        let width = max((range.upperBound - range.lowerBound) * scale, 16)
+        // Toute la hauteur de la sous-ligne.
+        let height = Self.annotationRowHeight
+        let isSelected = document.selectedAnnotationID == annotation.id
+        let tint = annotation.style == .frame ? annotation.color.color : Color.white
+        let edge: CGFloat = 8
+
+        return ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(tint.opacity(annotation.style == .frame ? 0.35 : 0.2))
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(isSelected ? Theme.textNormal : tint.opacity(0.8), lineWidth: isSelected ? 2 : 1)
+            if width > 44 {
+                Image(systemName: annotation.style == .frame ? "rectangle.dashed" : "light.max")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Theme.textNormal)
+                    .padding(.leading, edge + 2)
+            }
+            // Bords : changer le début ou la fin (repérés par une petite barre sur le bloc sélectionné).
+            HStack(spacing: 0) {
+                annotationEdge(annotation, kind: .start, scale: scale, isSelected: isSelected)
+                    .frame(width: edge)
+                Spacer(minLength: 0)
+                annotationEdge(annotation, kind: .end, scale: scale, isSelected: isSelected)
+                    .frame(width: edge)
+            }
+        }
+        .frame(width: width, height: height)
+        .contentShape(Rectangle())
+        // Priorité normale : les bords (gestes enfants, plus profonds) passent avant le déplacement,
+        // et le bloc passe quand même avant le positionnement de la tête de lecture (geste ancêtre).
+        .gesture(annotationGesture(annotation, kind: .move, scale: scale, blockStart: range.lowerBound))
+        .help(annotation.style == .frame ? "Cadre : glisser pour déplacer, bords pour la durée" : "Projecteur : glisser pour déplacer, bords pour la durée")
+    }
+
+    private func annotationEdge(_ annotation: Annotation, kind: AnnotationDragKind, scale: Double, isSelected: Bool) -> some View {
+        Color.clear
+            .overlay {
+                if isSelected {
+                    Capsule()
+                        .fill(Theme.textNormal)
+                        .frame(width: 2, height: 10)
+                }
+            }
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+            }
+            .highPriorityGesture(annotationGesture(annotation, kind: kind, scale: scale, blockStart: nil))
+    }
+
+    /// Clic : sélectionne l'annotation (et y amène la tête de lecture si elle n'y est pas).
+    /// Glisser : déplace le bloc, ou change son début / sa fin. Une seule étape d'annulation par geste.
+    private func annotationGesture(
+        _ annotation: Annotation,
+        kind: AnnotationDragKind,
+        scale: Double,
+        blockStart: Double?
+    ) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
+            .onChanged { value in
+                if annotationDrag == nil {
+                    annotationDrag = AnnotationDrag(kind: kind, original: annotation, scale: scale)
+                    // Le bloc garde sa sous-ligne pendant tout le geste.
+                    frozenAnnotationRows = annotationRows
+                    document.selectedAnnotationID = annotation.id
+                    document.selectedSegment = nil
+                    document.beginAnnotationEdit()
+                }
+                guard let drag = annotationDrag, abs(value.translation.width) > 1 else { return }
+                let delta = value.translation.width / drag.scale
+                let original = drag.original
+                let limit = document.sourceDuration
+                let minimum = Annotation.minimumDuration
+                document.editAnnotation(original.id) { edited in
+                    switch drag.kind {
+                    case .move:
+                        let length = original.end - original.start
+                        let start = min(max(original.start + delta, 0), max(limit - length, 0))
+                        edited.start = start
+                        edited.end = start + length
+                    case .start:
+                        edited.start = min(max(original.start + delta, 0), original.end - minimum)
+                    case .end:
+                        edited.end = max(min(original.end + delta, limit), original.start + minimum)
+                    }
+                }
+            }
+            .onEnded { value in
+                document.endAnnotationEdit()
+                // Simple clic sur le bloc : la tête de lecture vient sur l'annotation pour la voir et la modifier.
+                if abs(value.translation.width) <= 1, let blockStart,
+                   let time = document.timeMapping.sourceTime(at: document.currentTime),
+                   annotation.opacity(atSource: time) == 0 {
+                    // Le bloc commence là où l'annotation est déjà entièrement visible.
+                    document.seek(to: blockStart)
+                }
+                annotationDrag = nil
+                frozenAnnotationRows = nil
+            }
     }
 
     private func followPlayhead(_ time: Double, leading: CGFloat, scale: Double) {
@@ -704,6 +1039,59 @@ struct EditorTimeline: View {
         .frame(width: 10, height: contentHeight)
         .offset(x: x - 5)
         .allowsHitTesting(false)
+    }
+}
+
+/// Cellule de la colonne de libellés : icône dans une colonne de largeur fixe, puis le texte, pour que toutes
+/// les lignes soient alignées. Avec une action, toute la cellule est le bouton : violette quand l'élément est
+/// actif, grise (icône barrée) quand il est coupé.
+private struct TimelineHeaderCell: View {
+    let icon: String
+    let title: String
+    /// `nil` : simple libellé, pas un interrupteur.
+    var isOn: Bool?
+    var action: (() -> Void)?
+
+    @State private var isHovered = false
+    @Environment(\.isEnabled) private var isEnabled
+
+    private var foreground: Color {
+        isOn == true ? Theme.accent : Theme.textMuted
+    }
+
+    private var background: Color {
+        if isOn == true { return Theme.accent.opacity(isHovered ? 0.2 : 0.12) }
+        if action != nil, isHovered { return Theme.border.opacity(0.6) }
+        return .clear
+    }
+
+    var body: some View {
+        if let action {
+            Button(action: action) { label }
+                .buttonStyle(.plain)
+                .focusable(false)
+                .onHover { isHovered = $0 }
+        } else {
+            label
+        }
+    }
+
+    private var label: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 18, alignment: .center)
+            Text(title)
+                .font(.system(size: 12, weight: isOn == true ? .medium : .regular))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(foreground)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(background)
+        .contentShape(Rectangle())
+        .opacity(isEnabled ? 1 : 0.45)
     }
 }
 

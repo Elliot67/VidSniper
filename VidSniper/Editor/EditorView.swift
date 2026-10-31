@@ -5,8 +5,22 @@ struct EditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Outils d'annotation au-dessus de la vidéo, sur laquelle on trace.
+            AnnotationBar(document: document)
+                .padding(.horizontal, Theme.spacing * 1.5)
+                .padding(.vertical, Theme.spacing * 0.75)
+                .background(Theme.backgroundPrimary)
+                .disabled(!document.isReady)
+
+            Divider().overlay(Theme.border)
+
             PlayerLayerView(player: document.player)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay {
+                    if document.isReady {
+                        AnnotationLayer(document: document)
+                    }
+                }
                 .overlay {
                     // Aperçu d'une image hors montage, quand on rallonge un clip.
                     if let frame = document.trimPreviewFrame {
@@ -32,7 +46,6 @@ struct EditorView: View {
             VStack(spacing: Theme.spacing) {
                 controls
                 EditorTimeline(document: document)
-                shortcutsHint
                 ExportBar(export: document.export, thumbnail: document.firstFrameThumbnail)
             }
             .padding(Theme.spacing * 1.5)
@@ -55,19 +68,6 @@ struct EditorView: View {
                 .foregroundStyle(Theme.textMuted)
 
             Spacer()
-
-            // Pas de clics pour une vidéo importée : la pastille n'a pas de sens.
-            if !document.recording.isImported {
-                ToggleChip(
-                    isOn: Binding(get: { document.showClicks && document.hasClicks }, set: { document.setShowClicks($0) }),
-                    title: "Clics",
-                    onIcon: "cursorarrow.click.2",
-                    offIcon: "cursorarrow"
-                )
-                .focusable(false)
-                .disabled(!document.hasClicks)
-                .help(document.hasClicks ? "Mettre en évidence les clics" : "Aucun clic pendant l'enregistrement")
-            }
 
             Button(action: document.cutAtPlayhead) {
                 Label("Couper", systemImage: "scissors")
@@ -124,13 +124,6 @@ struct EditorView: View {
                 .focusable(false)
                 .help("Afficher tout le montage")
         }
-    }
-
-    private var shortcutsHint: some View {
-        Text("Espace lecture · X couper · ⌫ supprimer le segment · ← → image par image (⇧ 1 s) · ⌘Z annuler · ⌘+ ⌘− zoom · ⌘C copier · ⌘S enregistrer")
-            .font(.system(size: 11))
-            .foregroundStyle(Theme.textMuted)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     static func format(_ seconds: Double) -> String {

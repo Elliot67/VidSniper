@@ -15,7 +15,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
     init(recording: RecordingResult) {
         document = EditorDocument(recording: recording)
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1000, height: 780),
+            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 860),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -24,7 +24,7 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
 
         window.title = recording.url.deletingPathExtension().lastPathComponent
         window.isReleasedWhenClosed = false
-        window.contentMinSize = NSSize(width: 860, height: 640)
+        window.contentMinSize = NSSize(width: 900, height: 720)
         window.contentView = NSHostingView(rootView: EditorView(document: document))
         window.delegate = self
         window.center()
@@ -66,7 +66,14 @@ final class EditorWindowController: NSObject, NSWindowDelegate {
         case (_, "x", []):
             document.cutAtPlayhead()
         case (kVK_Delete, _, []), (kVK_ForwardDelete, _, []):
-            document.deleteSelectedSegment()
+            // L'annotation sélectionnée passe avant le segment.
+            if document.selectedAnnotationID != nil {
+                document.deleteSelectedAnnotation()
+            } else {
+                document.deleteSelectedSegment()
+            }
+        case (kVK_Escape, _, []):
+            document.cancelAnnotationInteraction()
         case (kVK_LeftArrow, _, []):
             document.step(by: -EditorDocument.frameDuration)
         case (kVK_RightArrow, _, []):

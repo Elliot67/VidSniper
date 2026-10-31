@@ -12,9 +12,9 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 1 | Raccourci global, sélecteur de zone, capture 3 pistes, mini barre, déplacement de zone en cours d'enregistrement | Fait |
 | 2 | Éditeur : lecture, trim, cuts, pistes audio, raccourcis clavier, annuler, timeline zoomable | Fait |
 | 3 | Export : réglages, estimation, glisser, copier, enregistrer, cache ; niveaux audio automatiques + balance | Fait |
-| 4 (bonus) | Mise en évidence des clics | Fait (animation à valider) |
+| 4 (bonus) | Mise en évidence des clics (animation à deux bulles, couleur, ligne "Clics" dans la timeline) | Fait |
 | 4 (bonus) | Installation dans `/Applications`, réglage du raccourci global, icône de l'app | Fait |
-| 4 (bonus) | Annotations pour mettre un élément en avant, sur une plage de temps | En cours (cadrage) |
+| 4 (bonus) | Annotations (cadre / projecteur, rectangle / ellipse, couleurs) sur une plage de temps, timeline retravaillée, aide des raccourcis | Fait |
 | 5 | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur (version de base, sans clics) | Fait |
 | - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
@@ -25,7 +25,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 - **Pistes audio** : l'éditeur garde ses deux emplacements. 1 piste → ligne "Audio" ; 2 pistes ou plus → "Audio 1" et "Audio 2" avec la balance entre les deux ; les pistes suivantes (rares) sont ignorées. Icônes génériques (forme d'onde). Choix assumé : les pistes alternatives (langues d'un film) ne sont pas distinguées, elles seraient mixées, car ce cas n'est pas visé. Normalisation automatique et garde-fous des pistes muettes comme pour un enregistrement.
 - **Rotation** : les dimensions (proportions, miniatures, taille d'export) tiennent compte de la rotation de la piste (vidéo de téléphone en portrait).
 - **Fichier d'origine jamais touché** : lu en place, ni copié, ni modifié, ni purgé (la purge ne vise que `~/Library/Caches/VidSniper`). Le MP4 exporté porte le nom du fichier d'origine.
-- **Pas de clics** : la pastille "Clics" est masquée pour une vidéo importée.
+- **Pas de clics** : la ligne "Clics" de la timeline est masquée pour une vidéo importée. Les annotations, elles, marchent comme pour un enregistrement.
 - La fenêtre principale garde la dernière vidéo ouverte ("Vidéo importée + audio 1 + audio 2") pour rouvrir l'éditeur.
 
 ## Le déroulé
@@ -111,11 +111,11 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 - **Les boutons désactivés sont grisés** (Supprimer sans sélection ou sur le dernier clip, Annuler/Rétablir sans historique, dézoom au minimum).
 - Les pastilles ont une icône de largeur fixe (les variantes barrées sont plus larges et faisaient sauter l'UI).
 - Timeline :
-  - **Colonne de libellés à gauche**, hors de la zone défilante : "Vidéo", puis une pastille par piste audio (Son système, Micro) qui sert aussi à garder ou couper la piste. Une piste coupée est grisée sur toute sa ligne.
+  - **Colonne de libellés à gauche**, hors de la zone défilante : une cellule par ligne ("Vidéo", pistes audio, "Clics", "Annotations"), icônes alignées dans une colonne de largeur fixe et textes alignés. Les pistes audio et "Clics" sont des **cellules cliquables** (toute la cellule est le bouton) : violette quand l'élément est actif, grise avec icône barrée quand il est coupé, survol marqué. Une piste coupée est aussi grisée sur toute sa ligne dans la timeline.
   - **Niveaux audio automatiques + balance** (remplace les curseurs de volume par piste, à refaire à chaque vidéo) :
     - **Normalisation** : à l'ouverture, chaque piste est analysée (RMS par tranche de 1/50 s). Une piste est **active** si elle dépasse -45 dBFS pendant au moins 1 s au total (0,3 s à 1 s sur une vidéo courte, 3 % de la durée). Le niveau moyen des passages actifs est ramené à **-20 dBFS**, avec un gain plafonné à **+18 dB** (et -30 dB).
-    - **Pistes sans son** (micro allumé sans parler, navigateur silencieux) : jamais amplifiées ni touchées, pour ne pas faire remonter le souffle. La pastille l'indique dans sa bulle d'aide ("Pas de son détecté sur le micro").
-    - **Balance** : un **curseur vertical entre les deux lignes de son**, dans la colonne de gauche. En haut, le son système ressort ; en bas, la voix ressort ; au milieu (repère, aimanté), même niveau perçu. Écart maximal ±20 dB : la piste en retrait est atténuée, l'autre reste au niveau cible. Par défaut : la voix ressort, son système 10 dB plus bas. Double-clic : réglage par défaut. Mémorisée pour toutes les vidéos, hors annuler/rétablir.
+    - **Pistes sans son** (micro allumé sans parler, navigateur silencieux) : jamais amplifiées. Dès l'analyse terminée, la piste est **coupée d'office** (cellule grisée, icône barrée) et **ne peut pas être réactivée** (cellule inactive, bulle d'aide "Pas de son détecté sur cette piste"). Elle est donc absente de l'export. Ce n'est pas une modification de l'utilisateur : pas d'étape d'annulation, et l'historique est corrigé pour qu'annuler ne la réactive pas.
+    - **Balance** : un **curseur vertical entre les deux lignes de son**, dans sa propre colonne à droite de la colonne de libellés (fond plus clair `Theme.surface`, trait à gauche), qui couvre les deux pistes et masque le trait horizontal qui les sépare. En haut, le son système ressort ; en bas, la voix ressort ; au milieu (repère, aimanté), même niveau perçu. Écart maximal ±20 dB : la piste en retrait est atténuée, l'autre reste au niveau cible. Par défaut : la voix ressort, son système 10 dB plus bas. Double-clic : réglage par défaut. Mémorisée pour toutes les vidéos, hors annuler/rétablir.
     - La balance est grisée (avec la raison en bulle d'aide) si une piste est coupée ou sans son : la piste restante est simplement normalisée.
     - Les lignes de niveau sonore affichent le **niveau final** (après normalisation et balance), de -40 dBFS (vide) à 0 dBFS (pleine hauteur).
     - Technique : `setVolume` d'`AVAudioMix` est limité à 100 %.
@@ -128,6 +128,7 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
   - **Règle de temps** en haut (graduations adaptées au zoom).
   - **Marges aux extrémités** : avant et après le montage, la timeline réserve assez de place pour rallonger n'importe quel clip rogné, y compris un clip du milieu dont la partie disponible dépasse le début ou la fin de la timeline. On peut ainsi toujours défiler jusqu'à la limite.
   - **Vignettes en tuiles de taille fixe**, tirées d'un cache de la source (une image toutes les 0,5 s, 400 max) : elles restent nettes au zoom, sans étirement ni régénération.
+  - Lignes à pastille (pistes audio, clics) : 35 pt et 30 pt de haut, pour garder environ 5 pt de marge autour de la pastille.
   - **Une ligne de niveau sonore par piste** (son système, puis micro), pour repérer où couper. Elles suivent le montage. Lecture seule. Calcul : crête par tranche de 1/50 s, normalisée par piste, en décibels (-40 dB → vide) pour que les sons faibles se voient.
   - Clic ou glisser sur la timeline : déplace la tête de lecture et sélectionne le segment cliqué.
   - Chaque segment a deux poignées de rognage, qui couvrent aussi les lignes de son. Un segment issu d'une découpe ne peut pas déborder sur la partie voisine (bornes mémorisées à la découpe). Durée minimale 0,1 s.
@@ -155,15 +156,42 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 
 Les lettres sont lues d'après le caractère tapé et non la position de la touche, pour fonctionner en AZERTY.
 
+**Aide** : plus de texte d'aide affiché en permanence. Un petit **"?"** en haut à droite de l'éditeur (au bout de la barre "Annoter") affiche au survol tous les raccourcis, un par ligne, regroupés par catégorie : Lecture, Montage, Annotations, Timeline, Export, Partout (raccourci global, ⌘O).
+
 ### Mise en évidence des clics (phase 4)
 
 - **Pendant l'enregistrement** : un moniteur global d'événements souris (pas de permission nécessaire, contrairement au clavier) note chaque clic gauche ou droit fait **dans la zone** : instant dans la vidéo (pauses déduites, rien pendant une pause) et position normalisée dans la zone (qui peut avoir été déplacée). Les clics sur la mini barre de VidSniper ne sont pas comptés.
 - **Rendu** : deux bulles superposées, rayon de référence de 22 points d'écran quelle que soit la taille de la zone.
   - Un disque violet translucide cerclé, qui grandit (45 % → 100 % du rayon) et s'efface en 0,5 s.
   - Une onde : un simple contour fin, qui part **0,2 s après** le disque, dure 0,6 s et va plus loin (50 % → 200 % du rayon). On voit d'abord le petit disque, puis la grande onde. Animation complète : 0,8 s. L'onde s'efface dès son départ (opacité (1 - avancement)^1,5, ~35 % à mi-parcours) pour être déjà très transparente à sa taille maximale ; le disque reste bien visible puis s'efface vers la fin (1 - avancement²).
-- **Dans l'éditeur** : pastille "Clics" dans la barre de contrôles (grisée s'il n'y a eu aucun clic). Réglage mémorisé d'une vidéo à l'autre, hors annuler/rétablir. Les clics suivent le montage (un clic dans une partie coupée disparaît).
+- **Dans l'éditeur**, sur le modèle des pistes audio : une ligne **"Clics"** dans la timeline (absente pour une vidéo importée).
+  - Colonne de gauche : cellule "Clics" cliquable pour activer / couper la mise en évidence (grisée s'il n'y a eu aucun clic), avec à droite une petite pastille de couleur (menu, même palette que les annotations).
+  - Timeline : un repère (trait + point de la couleur des clics) à chaque clic, à sa place dans le montage ; ligne grisée quand la mise en évidence est coupée. Lecture seule.
+  - Réglages mémorisés d'une vidéo à l'autre, hors annuler/rétablir. Les clics suivent le montage (un clic dans une partie coupée disparaît).
 - **Aperçu fidèle** : les cercles sont dessinés par une composition vidéo Core Image (`VideoEffects.swift`), la même à la lecture et à l'export. Sans clics, l'export garde le chemin direct, plus rapide.
 - Limite : les clics ne sont gardés qu'en mémoire avec l'enregistrement (pas de fichier à côté du `.mov`).
+
+### Annotations (phase 4)
+
+But : mettre un élément en avant simplement, sans outil de dessin complexe.
+
+- **Deux styles**, chacun en rectangle arrondi ou en ellipse :
+  - **Cadre** : contour coloré (épaisseur 0,4 % de la largeur de la vidéo), avec une légère ombre pour rester lisible sur tous les fonds.
+  - **Projecteur** : l'image est assombrie (60 %) sauf la zone. Pas de couleur. Plusieurs projecteurs visibles en même temps = un seul assombrissement percé de plusieurs zones.
+- **Couleurs** : violet, rouge, jaune, vert (palette d'Obsidian), pour les cadres. Les mêmes pastilles servent aux **clics** : petit menu de couleur à côté de la pastille "Clics", appliqué à tous les clics, mémorisé.
+- **Un seul élément, plusieurs rendus** : une annotation est une zone + une durée ; le style (cadre / projecteur), la forme (rectangle / ellipse) et la couleur ne changent que son rendu, et se modifient à tout moment.
+- **Barre "Annoter"** en haut de la fenêtre, au-dessus de la vidéo (sur laquelle on trace) : outil **Tracer** (icône de stylo), rendu **Cadre / Projecteur**, forme **rectangle / ellipse**, couleurs, supprimer, aide contextuelle. Rendu, forme et couleur s'appliquent à l'annotation sélectionnée, sinon aux prochaines (mémorisés).
+- **Créer** : activer "Tracer", glisser sur la vidéo. L'annotation prend le rendu, la forme et la couleur courants, démarre à la tête de lecture et dure 3 s. L'outil se désarme ensuite et l'annotation est sélectionnée.
+- Icône de la ligne "Annotations" dans la timeline : un stylo (`pencil.and.scribble`).
+- **Modifier** : clic sur une annotation visible pour la sélectionner ; glisser pour la déplacer, coins pour la redimensionner ; ⌫ pour la supprimer ; Esc désarme l'outil puis désélectionne. Une annotation sélectionnée mais pas visible à cet instant est montrée en pointillés.
+- **Durée** : ligne "Annotations" dans la timeline, un bloc par annotation (scindé si une coupe tombe au milieu). Glisser le bloc pour le déplacer, ses bords pour changer début / fin (bords de 8 pt, repérés par une petite barre sur le bloc sélectionné ; durée minimale 0,3 s). Clic sur un bloc : la tête de lecture vient sur l'annotation si elle n'y était pas.
+  - **Sous-lignes** : la ligne "Annotations" s'agrandit toute seule, les blocs occupent toute la hauteur de leur sous-ligne. Chaque annotation est placée sur la première sous-ligne libre : deux annotations qui se chevauchent dans le temps ne s'empilent jamais. Pendant un glisser, le bloc garde sa sous-ligne.
+- **Timeline lisible** : traits horizontaux continus (couleur `Theme.separator`, plus marquée que les bordures) entre la règle, la vidéo, chaque piste audio et chaque sous-ligne d'annotations, sur toute la largeur (colonne de libellés comprise, sans coupure) et par-dessus les blocs. La colonne de libellés a un fond distinct, séparé de la timeline par un trait vertical. Marge de 18 pt sous la timeline, **à l'intérieur du contenu défilant** (une ScrollView horizontale prend la hauteur de son contenu et place sa barre en bas de celui-ci) : la barre de défilement ne recouvre plus la dernière ligne d'annotations.
+- Gestes des blocs d'annotation : le déplacement est en priorité normale (`.gesture`), les bords en priorité haute. Avec le déplacement en priorité haute, le geste du bloc parent l'emportait sur ceux des bords : on ne pouvait pas changer la durée.
+- **Fondu** de 0,2 s à l'entrée et à la sortie, **en dehors du bloc** : le bloc de la timeline est la période où l'annotation est visible à 100 %, le fondu d'entrée se fait juste avant et celui de sortie juste après. Une annotation posée à la tête de lecture y est donc entièrement visible tout de suite. L'aperçu reste fidèle à l'export (pas d'affichage spécial pendant l'édition).
+- **Attachées au contenu** : les plages sont en temps de la source ; couper avant une annotation la décale avec l'image, supprimer le passage la fait disparaître.
+- **Annuler / rétablir** : chaque création, modification (un geste = une étape) ou suppression.
+- **Rendu** : dans l'éditeur, dessinées en SwiftUI par-dessus la vidéo (fluide pendant le tracé) ; à l'export, dessinées par Core Image (`AnnotationOverlay`) avec les mêmes formes, épaisseurs et couleurs, sous les cercles de clic. Modifier une annotation ne reconstruit pas le montage : seul l'export est relancé (et mis en cache comme le reste).
 
 ### 4. Export (panneau en bas de l'éditeur)
 
@@ -172,6 +200,7 @@ Les lettres sont lues d'après le caractère tapé et non la position de la touc
 - MP4 H.264 (High) + AAC 128 kb/s stéréo, 30 i/s, optimisé pour le streaming. Les pistes audio gardées sont mixées en une seule piste : couper une seule des deux pistes ne change donc pas le poids, et couper les deux ne fait gagner que ~16 Ko/s (le son pèse très peu face à la vidéo).
 - Vitesse d'export : les images sont composées directement à la taille d'export (pas en pleine résolution puis réduites), et l'encodage se fait sans images B. Le gain est surtout visible à 75 % et 50 %. Limite du H.264 matériel : 4096 × 2304, la taille est réduite automatiquement au-delà (écrans 5K).
 - **Export automatique en arrière-plan** à chaque modification du montage ou des réglages, 0,5 s après la dernière modification. Un nouvel export annule le précédent. Le fichier final est remplacé d'un coup (jamais à moitié écrit).
+- **Annulation sûre** : le démarrage, la lecture des échantillons (vidéo et audio) et l'annulation passent tous par une seule file de travail (`ExportJob.queue`). Appeler `cancelReading` depuis le fil principal pendant un `copyNextSampleBuffer` détruisait le lecteur en pleine lecture et faisait planter l'app (par exemple en activant / désactivant les clics pendant un export).
 - Le fichier porte le nom de l'enregistrement (`VidSniper 2026-10-31 à 10.12.03.mp4`), c'est celui que voient les destinataires. Il est rangé dans `~/Library/Caches/VidSniper/Exports/<clé>/`, purgé après 24 h comme les enregistrements.
 - **Cache des exports** : chaque combinaison montage + taille + qualité + volumes garde son fichier pendant la session. Revenir à un réglage déjà essayé (pour comparer les poids, par exemple) rend la vidéo disponible immédiatement, sans réexporter.
 - **Vignette à glisser** (début du montage) : barre de progression pendant l'export, badge "Glisser" quand c'est prêt. On la glisse directement dans Slack, Jira, un mail…
@@ -182,5 +211,10 @@ Les lettres sont lues d'après le caractère tapé et non la position de la touc
 
 - ~~Que le collage dans Slack fonctionne~~ : validé, ainsi que le glisser-déposer.
 - ~~Que le gain audio (> 100 %) soit appliqué à l'export~~ : validé.
-- Que l'app reste bien sans fenêtre quand elle est lancée à l'ouverture de session.
-- Plus tard : installer l'app dans `/Applications` (le lancement à l'ouverture de session pointe vers l'emplacement actuel de l'app).
+- Que l'app reste bien sans fenêtre quand elle est lancée à l'ouverture de session (à vérifier depuis l'app installée dans `/Applications`, après avoir coupé puis réactivé l'option depuis celle-ci).
+
+## Pistes pour plus tard (hors plan)
+
+- **Garder les clics avec l'enregistrement** : aujourd'hui ils ne vivent qu'en mémoire, ils sont perdus si on quitte l'app avant de rouvrir l'éditeur. Un petit fichier JSON à côté du `.mov` suffirait.
+- **Historique des derniers enregistrements** dans la fenêtre principale (rouvrir l'un d'eux dans les 24 h avant la purge) ; aujourd'hui seul le dernier est accessible.
+- **Garder le montage** (coupes, annotations, réglages) quand on ferme puis rouvre l'éditeur : aujourd'hui, rouvrir repart de la vidéo brute.

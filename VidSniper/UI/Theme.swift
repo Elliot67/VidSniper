@@ -6,6 +6,10 @@ enum Theme {
     static let backgroundPrimary = dynamic(light: 0xFFFFFF, dark: 0x1E1E1E)
     static let backgroundSecondary = dynamic(light: 0xF6F6F6, dark: 0x262626)
     static let border = dynamic(light: 0xE0E0E0, dark: 0x363636)
+    /// Fond un peu plus clair que les panneaux (colonne de balance).
+    static let surface = dynamic(light: 0xFFFFFF, dark: 0x333333)
+    /// Traits de séparation plus marqués (sections de la timeline).
+    static let separator = dynamic(light: 0xC8C8C8, dark: 0x4A4A4A)
     static let textNormal = dynamic(light: 0x222222, dark: 0xDADADA)
     static let textMuted = dynamic(light: 0x5C5C5C, dark: 0x999999)
     static let accent = dynamic(light: 0x8A5CF5, dark: 0x8A5CF5)

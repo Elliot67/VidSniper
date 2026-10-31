@@ -33,18 +33,18 @@ struct ClickOverlay: @unchecked Sendable {
 
     private static let imageSize: CGFloat = 256
 
-    init(clicks: [ClickMark], radius: Double) {
+    init(clicks: [ClickMark], radius: Double, color: AnnotationColor) {
         self.clicks = clicks
         self.radius = radius
         bubbles = [
             Bubble(
-                image: Self.makeBubble(fillAlpha: 0.3, lineWidth: 14),
+                image: Self.makeBubble(color: color, fillAlpha: 0.3, lineWidth: 14),
                 delay: 0, duration: 0.5, startScale: 0.45, endScale: 1,
                 // Reste bien visible, puis s'efface vers la fin.
                 opacity: { 1 - $0 * $0 }
             ),
             Bubble(
-                image: Self.makeBubble(fillAlpha: 0, lineWidth: 5),
+                image: Self.makeBubble(color: color, fillAlpha: 0, lineWidth: 5),
                 delay: 0.2, duration: 0.6, startScale: 0.5, endScale: 2,
                 // S'efface dès le départ : déjà très transparente quand elle atteint sa taille maximale.
                 opacity: { pow(1 - $0, 1.5) }
@@ -78,8 +78,8 @@ struct ClickOverlay: @unchecked Sendable {
         return result
     }
 
-    /// Bulle violette (remplissage translucide et contour), dessinée une fois puis mise à l'échelle à chaque image.
-    private static func makeBubble(fillAlpha: CGFloat, lineWidth: CGFloat) -> CIImage {
+    /// Bulle colorée (remplissage translucide et contour), dessinée une fois puis mise à l'échelle à chaque image.
+    private static func makeBubble(color: AnnotationColor, fillAlpha: CGFloat, lineWidth: CGFloat) -> CIImage {
         let size = Int(imageSize)
         guard let context = CGContext(
             data: nil,
@@ -91,13 +91,12 @@ struct ClickOverlay: @unchecked Sendable {
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return CIImage.empty() }
 
-        let accent = (red: 0x8A / 255.0, green: 0x5C / 255.0, blue: 0xF5 / 255.0)
         let rect = CGRect(x: 0, y: 0, width: imageSize, height: imageSize).insetBy(dx: 10, dy: 10)
         if fillAlpha > 0 {
-            context.setFillColor(red: accent.red, green: accent.green, blue: accent.blue, alpha: fillAlpha)
+            context.setFillColor(color.cgColor(alpha: fillAlpha))
             context.fillEllipse(in: rect)
         }
-        context.setStrokeColor(red: accent.red, green: accent.green, blue: accent.blue, alpha: 0.95)
+        context.setStrokeColor(color.cgColor(alpha: 0.95))
         context.setLineWidth(lineWidth)
         context.strokeEllipse(in: rect)
 
@@ -106,20 +105,27 @@ struct ClickOverlay: @unchecked Sendable {
     }
 }
 
-/// Composition vidéo Core Image : effets (clics), puis mise à la taille de rendu.
-/// Utilisée à la lecture (aperçu fidèle) et à l'export.
+/// Composition vidéo Core Image : effets (annotations, clics), puis mise à la taille de rendu.
+/// Les clics passent par là à la lecture (aperçu fidèle) ; les annotations seulement à l'export
+/// (l'éditeur les dessine en SwiftUI, pour qu'elles suivent la souris pendant le tracé).
 enum VideoEffects {
     static func videoComposition(
         for asset: UncheckedSendable<AVAsset>,
         clicks: ClickOverlay?,
+        annotations: AnnotationOverlay? = nil,
         renderSize: CGSize?,
         frameRate: Double?
     ) async throws -> AVMutableVideoComposition {
         let composition = try await AVMutableVideoComposition.videoComposition(with: asset.value) { request in
             var image = request.sourceImage
             let extent = image.extent
+            let time = request.compositionTime.seconds
+            // Annotations sous les clics : un clic reste visible dans une zone mise en avant.
+            if let annotations {
+                image = annotations.apply(to: image, at: time)
+            }
             if let clicks {
-                image = clicks.apply(to: image, at: request.compositionTime.seconds)
+                image = clicks.apply(to: image, at: time)
             }
             if let renderSize, extent.width > 0, extent.height > 0 {
                 image = image.transformed(by: CGAffineTransform(

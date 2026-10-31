@@ -39,7 +39,8 @@ final class ExportModel {
     @ObservationIgnored private var volumes: [AudioTrackVolume] = []
     /// Clics à dessiner, déjà en temps du montage (`nil` : mise en évidence désactivée ou aucun clic).
     @ObservationIgnored private var clicks: ClickOverlay?
-    /// Description du montage (segments + pistes gardées) : avec les réglages, elle identifie un export.
+    @ObservationIgnored private var annotations: AnnotationOverlay?
+    /// Description du montage (segments, pistes gardées, effets) : avec les réglages, elle identifie un export.
     @ObservationIgnored private var signature = ""
     @ObservationIgnored private var exportTask: Task<Void, Never>?
     @ObservationIgnored private var copiedTask: Task<Void, Never>?
@@ -80,7 +81,8 @@ final class ExportModel {
         duration: Double,
         hasAudio: Bool,
         volumes: [AudioTrackVolume],
-        clicks: ClickOverlay?
+        clicks: ClickOverlay?,
+        annotations: AnnotationOverlay?
     ) {
         self.composition = composition
         self.signature = signature
@@ -88,6 +90,16 @@ final class ExportModel {
         self.hasAudio = hasAudio
         self.volumes = volumes
         self.clicks = clicks
+        self.annotations = annotations
+        scheduleExport()
+    }
+
+    /// Appelé quand les effets changent (annotations, couleur des clics) sans reconstruction du montage.
+    func effectsChanged(signature: String, clicks: ClickOverlay?, annotations: AnnotationOverlay?) {
+        guard signature != self.signature else { return }
+        self.signature = signature
+        self.clicks = clicks
+        self.annotations = annotations
         scheduleExport()
     }
 
@@ -119,6 +131,7 @@ final class ExportModel {
         let source = UncheckedSendable(composition)
         let volumes = volumes
         let clicks = clicks
+        let annotations = annotations
         exportTask = Task {
             // Regroupe les modifications rapprochées en un seul export.
             try? await Task.sleep(for: .milliseconds(500))
@@ -128,7 +141,7 @@ final class ExportModel {
                 .appending(path: ".\(UUID().uuidString).mp4")
             do {
                 try await VideoExporter.export(
-                    source.value, plan: plan, volumes: volumes, clicks: clicks, to: temporary
+                    source.value, plan: plan, volumes: volumes, clicks: clicks, annotations: annotations, to: temporary
                 ) { progress in
                     Task { @MainActor in
                         guard case .exporting = self.status else { return }

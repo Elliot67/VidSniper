@@ -13,6 +13,7 @@ struct EditState: Equatable {
     var segments: [Segment]
     var systemAudio: Bool
     var microphone: Bool
+    var annotations: [Annotation] = []
 }
 
 enum SegmentEdge {
@@ -86,6 +87,26 @@ final class EditorDocument {
     @ObservationIgnored private var videoPixelWidth: CGFloat = 0
     /// Mise en évidence des clics, mémorisée d'une vidéo à l'autre (hors annuler/rétablir).
     private(set) var showClicks = UserDefaults.standard.object(forKey: "showClicks") as? Bool ?? true
+    /// Couleur des cercles de clic, mémorisée d'une vidéo à l'autre.
+    private(set) var clickColor = AnnotationColor(rawValue: UserDefaults.standard.string(forKey: "clickColor") ?? "") ?? .violet
+
+    // Annotations : outil "Tracer" armé (le prochain glisser sur la vidéo en crée une), sélection,
+    // réglages des prochaines (style, forme, couleur : un seul élément, plusieurs rendus).
+    private(set) var isDrawingAnnotation = false
+    var selectedAnnotationID: UUID?
+    private(set) var newAnnotationStyle = AnnotationStyle(
+        rawValue: UserDefaults.standard.string(forKey: "annotationStyle") ?? ""
+    ) ?? .frame
+    private(set) var newAnnotationShape = AnnotationShape(
+        rawValue: UserDefaults.standard.string(forKey: "annotationShape") ?? ""
+    ) ?? .rectangle
+    private(set) var newAnnotationColor = AnnotationColor(
+        rawValue: UserDefaults.standard.string(forKey: "annotationColor") ?? ""
+    ) ?? .violet
+    @ObservationIgnored private var annotationSnapshot: EditState?
+    @ObservationIgnored private var videoDisplaySize: CGSize = .zero
+    /// Durée de la vidéo source (borne des annotations).
+    @ObservationIgnored private(set) var sourceDuration: Double = 0
     private(set) var pendingTrim: PendingTrim?
     /// Image de la source au nouveau bord quand on rallonge un clip (elle n'est pas dans le montage).
     private(set) var trimPreviewFrame: CGImage?
@@ -216,6 +237,8 @@ final class EditorDocument {
             let size = CGSize(width: abs(rotated.width), height: abs(rotated.height))
             if size.height > 0 { videoAspectRatio = size.width / size.height }
             videoPixelWidth = size.width
+            videoDisplaySize = size
+            sourceDuration = duration.seconds
             export.videoSize = size
 
             // Ordre d'écriture du Recorder : son système, puis micro.
@@ -334,6 +357,9 @@ final class EditorDocument {
                     microphoneEnvelope = envelope
                 } else {
                     systemAudioEnvelope = envelope
+                }
+                if envelope.loudness == nil {
+                    disableSilentTrack(microphone: isMicrophone)
                 }
                 // Les niveaux mesurés donnent les gains de normalisation.
                 applyGains()
@@ -563,11 +589,30 @@ final class EditorDocument {
     // MARK: - Audio
 
     func setSystemAudio(_ enabled: Bool) {
+        guard !(enabled && isSilent(microphone: false)) else { return }
         apply(seekTo: currentTime) { $0.systemAudio = enabled }
     }
 
     func setMicrophone(_ enabled: Bool) {
+        guard !(enabled && isSilent(microphone: true)) else { return }
         apply(seekTo: currentTime) { $0.microphone = enabled }
+    }
+
+    /// Piste sans son : coupée d'office et pour de bon (dans l'historique aussi, pour qu'annuler ne la
+    /// réactive pas). Ce n'est pas une modification de l'utilisateur : pas d'étape d'annulation.
+    private func disableSilentTrack(microphone: Bool) {
+        func disable(_ state: inout EditState) {
+            if microphone {
+                state.microphone = false
+            } else {
+                state.systemAudio = false
+            }
+        }
+        let wasEnabled = microphone ? state.microphone : state.systemAudio
+        disable(&state)
+        for index in undoStack.indices { disable(&undoStack[index]) }
+        for index in redoStack.indices { disable(&redoStack[index]) }
+        if wasEnabled { rebuild(seekTo: currentTime) }
     }
 
     func setShowClicks(_ enabled: Bool) {
@@ -577,6 +622,153 @@ final class EditorDocument {
         rebuild(seekTo: currentTime)
     }
 
+    func setClickColor(_ color: AnnotationColor) {
+        guard clickColor != color else { return }
+        clickColor = color
+        UserDefaults.standard.set(color.rawValue, forKey: "clickColor")
+        // L'aperçu des clics passe par Core Image : il faut reconstruire l'élément lu.
+        rebuild(seekTo: currentTime)
+    }
+
+    // MARK: - Annotations
+
+    /// Correspondance montage → source, pour placer les annotations (attachées au contenu).
+    var timeMapping: TimeMapping {
+        let starts = segmentStarts
+        return TimeMapping(pieces: state.segments.enumerated().map { index, segment in
+            TimeMapping.Piece(
+                compositionStart: starts[index],
+                sourceStart: segment.range.start.seconds,
+                duration: segment.range.duration.seconds
+            )
+        })
+    }
+
+    var selectedAnnotation: Annotation? {
+        state.annotations.first { $0.id == selectedAnnotationID }
+    }
+
+    /// Arme l'outil "Tracer" (ou le désarme) : le prochain glisser sur la vidéo crée une annotation.
+    func toggleAnnotationDrawing() {
+        isDrawingAnnotation.toggle()
+        if isDrawingAnnotation {
+            selectedAnnotationID = nil
+            if isPlaying { togglePlay() }
+        }
+    }
+
+    /// Esc : désarme l'outil, puis désélectionne.
+    func cancelAnnotationInteraction() {
+        if isDrawingAnnotation {
+            isDrawingAnnotation = false
+        } else {
+            selectedAnnotationID = nil
+        }
+    }
+
+    /// Crée une annotation à la tête de lecture, pour la durée par défaut, avec les réglages courants.
+    func createAnnotation(in rect: CGRect) {
+        guard isDrawingAnnotation, let start = timeMapping.sourceTime(at: currentTime) else { return }
+        let end = min(start + Annotation.defaultDuration, sourceDuration)
+        let annotation = Annotation(
+            id: UUID(),
+            style: newAnnotationStyle,
+            shape: newAnnotationShape,
+            color: newAnnotationColor,
+            rect: rect,
+            start: min(start, end - Annotation.minimumDuration),
+            end: end
+        )
+        applyAnnotations { $0.annotations.append(annotation) }
+        isDrawingAnnotation = false
+        selectedAnnotationID = annotation.id
+    }
+
+    /// Rendu (cadre ou projecteur) de l'annotation sélectionnée, ou des prochaines si rien n'est sélectionné.
+    func setAnnotationStyle(_ style: AnnotationStyle) {
+        if let id = selectedAnnotationID {
+            applyAnnotations { state in
+                if let index = state.annotations.firstIndex(where: { $0.id == id }) {
+                    state.annotations[index].style = style
+                }
+            }
+        }
+        newAnnotationStyle = style
+        UserDefaults.standard.set(style.rawValue, forKey: "annotationStyle")
+    }
+
+    func deleteSelectedAnnotation() {
+        guard let id = selectedAnnotationID else { return }
+        applyAnnotations { $0.annotations.removeAll { $0.id == id } }
+        selectedAnnotationID = nil
+    }
+
+    /// Forme de l'annotation sélectionnée, ou des prochaines si rien n'est sélectionné.
+    func setAnnotationShape(_ shape: AnnotationShape) {
+        if let id = selectedAnnotationID {
+            applyAnnotations { state in
+                if let index = state.annotations.firstIndex(where: { $0.id == id }) {
+                    state.annotations[index].shape = shape
+                }
+            }
+        }
+        newAnnotationShape = shape
+        UserDefaults.standard.set(shape.rawValue, forKey: "annotationShape")
+    }
+
+    /// Couleur du cadre sélectionné, ou des prochains si rien n'est sélectionné.
+    func setAnnotationColor(_ color: AnnotationColor) {
+        if let id = selectedAnnotationID {
+            applyAnnotations { state in
+                if let index = state.annotations.firstIndex(where: { $0.id == id }) {
+                    state.annotations[index].color = color
+                }
+            }
+        }
+        newAnnotationColor = color
+        UserDefaults.standard.set(color.rawValue, forKey: "annotationColor")
+    }
+
+    /// Modification continue (déplacement, redimensionnement, durée) : une seule étape d'annulation à la fin.
+    func beginAnnotationEdit() {
+        annotationSnapshot = state
+        if isPlaying { togglePlay() }
+    }
+
+    func editAnnotation(_ id: UUID, _ change: (inout Annotation) -> Void) {
+        guard let index = state.annotations.firstIndex(where: { $0.id == id }) else { return }
+        change(&state.annotations[index])
+    }
+
+    func endAnnotationEdit() {
+        guard let snapshot = annotationSnapshot else { return }
+        annotationSnapshot = nil
+        guard snapshot != state else { return }
+        undoStack.append(snapshot)
+        redoStack.removeAll()
+        notifyEffectsChanged()
+    }
+
+    /// Les annotations ne touchent pas à la composition : pas de reconstruction, seul l'export est relancé.
+    private func applyAnnotations(_ change: (inout EditState) -> Void) {
+        var newState = state
+        change(&newState)
+        guard newState != state else { return }
+        undoStack.append(state)
+        redoStack.removeAll()
+        state = newState
+        notifyEffectsChanged()
+    }
+
+    private func notifyEffectsChanged() {
+        export.effectsChanged(signature: editSignature, clicks: clickOverlay, annotations: annotationOverlay)
+    }
+
+    private var annotationOverlay: AnnotationOverlay? {
+        guard !state.annotations.isEmpty, videoDisplaySize != .zero else { return nil }
+        return AnnotationOverlay(annotations: state.annotations, mapping: timeMapping, videoSize: videoDisplaySize)
+    }
+
     // MARK: - Annuler / rétablir
 
     func undo() {
@@ -584,6 +776,7 @@ final class EditorDocument {
         redoStack.append(state)
         state = previous
         selectedSegment = nil
+        dropMissingAnnotationSelection()
         rebuild(seekTo: currentTime)
     }
 
@@ -592,7 +785,12 @@ final class EditorDocument {
         undoStack.append(state)
         state = next
         selectedSegment = nil
+        dropMissingAnnotationSelection()
         rebuild(seekTo: currentTime)
+    }
+
+    private func dropMissingAnnotationSelection() {
+        if selectedAnnotation == nil { selectedAnnotationID = nil }
     }
 
     private func apply(seekTo time: Double? = nil, _ change: (inout EditState) -> Void) {
@@ -659,7 +857,8 @@ final class EditorDocument {
             duration: duration,
             hasAudio: !audioSources.isEmpty,
             volumes: audioVolumes,
-            clicks: clicks
+            clicks: clicks,
+            annotations: annotationOverlay
         )
 
         // Aperçu fidèle : les clics sont dessinés par la même composition Core Image que l'export.
@@ -674,22 +873,31 @@ final class EditorDocument {
         }
     }
 
-    /// Description textuelle du montage (segments à la milliseconde + pistes gardées + clics), clé du cache d'export.
+    /// Description textuelle du montage (segments à la milliseconde, pistes gardées, clics, annotations),
+    /// clé du cache d'export.
     private var editSignature: String {
         let segments = state.segments
             .map { String(format: "%.3f-%.3f", $0.range.start.seconds, $0.range.end.seconds) }
             .joined(separator: ",")
-        let clicks = clickOverlay == nil ? 0 : 1
-        return "\(segments)|s\(state.systemAudio ? 1 : 0)m\(state.microphone ? 1 : 0)c\(clicks)"
+        let clicks = clickOverlay == nil ? "0" : clickColor.rawValue
+        let annotations = state.annotations.map { annotation in
+            let rect = annotation.rect
+            return String(
+                format: "%@%@%@:%.4f,%.4f,%.4f,%.4f:%.3f-%.3f",
+                annotation.style.rawValue, annotation.shape.rawValue, annotation.color.rawValue,
+                rect.minX, rect.minY, rect.width, rect.height, annotation.start, annotation.end
+            )
+        }.joined(separator: ";")
+        return "\(segments)|s\(state.systemAudio ? 1 : 0)m\(state.microphone ? 1 : 0)c\(clicks)|\(annotations)"
     }
 
     // MARK: - Clics
 
     var hasClicks: Bool { !recording.clicks.isEmpty }
 
-    /// Cercles de clic en temps du montage : chaque clic tombant dans un segment gardé y est replacé.
-    private var clickOverlay: ClickOverlay? {
-        guard showClicks, hasClicks, videoPixelWidth > 0 else { return nil }
+    /// Clics en temps du montage : chaque clic tombant dans un segment gardé y est replacé
+    /// (ligne "Clics" de la timeline, et cercles dessinés dans la vidéo).
+    var compositionClicks: [ClickMark] {
         let starts = segmentStarts
         var clicks: [ClickMark] = []
         for (index, segment) in state.segments.enumerated() {
@@ -699,9 +907,16 @@ final class EditorDocument {
                 clicks.append(ClickMark(time: starts[index] + click.time - start, x: click.x, y: click.y))
             }
         }
+        return clicks
+    }
+
+    /// Cercles de clic dessinés dans la vidéo (si la mise en évidence est activée).
+    private var clickOverlay: ClickOverlay? {
+        guard showClicks, hasClicks, videoPixelWidth > 0 else { return nil }
+        let clicks = compositionClicks
         guard !clicks.isEmpty else { return nil }
         // Rayon de 22 points d'écran, quelle que soit la taille de la zone.
-        return ClickOverlay(clicks: clicks, radius: 22 * recording.pixelsPerPoint / videoPixelWidth)
+        return ClickOverlay(clicks: clicks, radius: 22 * recording.pixelsPerPoint / videoPixelWidth, color: clickColor)
     }
 
     /// Vignette du début du montage (aperçu de la vidéo à glisser).
