@@ -27,9 +27,42 @@ extension AVAudioMix {
         return mix
     }
 
-    /// Mix figé pour l'export.
-    static func with(_ volumes: [AudioTrackVolume]) -> AVAudioMix {
-        with(gains: volumes.map { ($0.trackID, AudioGain($0.volume)) })
+    /// Mix pour l'export, sans traitement audio : AVFoundation plante au démarrage de la lecture quand des
+    /// `MTAudioProcessingTap` sont combinés à une composition vidéo Core Image. Les volumes sont ramenés sous
+    /// 100 % (seul cas géré par `setVolume`) en les divisant par le plus fort ; ce gain global est rendu
+    /// ensuite sur le son mixé (`masterGain`). Le résultat est le même, le mix étant linéaire.
+    static func forExport(_ volumes: [AudioTrackVolume]) -> (mix: AVAudioMix, masterGain: Float) {
+        let masterGain = max(1, volumes.map(\.volume).max() ?? 1)
+        let mix = AVMutableAudioMix()
+        mix.inputParameters = volumes.map { volume in
+            let parameters = AVMutableAudioMixInputParameters()
+            parameters.trackID = volume.trackID
+            parameters.setVolume(volume.volume / masterGain, at: .zero)
+            return parameters
+        }
+        return (mix, masterGain)
+    }
+}
+
+/// Multiplie les échantillons Float32 d'un tampon audio (écrêtés à ±1), en place.
+func applyGain(_ gain: Float, to sampleBuffer: CMSampleBuffer) {
+    guard gain != 1, let block = CMSampleBufferGetDataBuffer(sampleBuffer) else { return }
+    let totalLength = CMBlockBufferGetDataLength(block)
+    var offset = 0
+    // Un tampon peut être fait de plusieurs morceaux non contigus.
+    while offset < totalLength {
+        var length = 0
+        var pointer: UnsafeMutablePointer<CChar>?
+        guard CMBlockBufferGetDataPointer(
+            block, atOffset: offset, lengthAtOffsetOut: &length, totalLengthOut: nil, dataPointerOut: &pointer
+        ) == kCMBlockBufferNoErr, let pointer, length > 0 else { return }
+        let count = length / MemoryLayout<Float>.size
+        pointer.withMemoryRebound(to: Float.self, capacity: count) { samples in
+            for index in 0..<count {
+                samples[index] = min(1, max(-1, samples[index] * gain))
+            }
+        }
+        offset += length
     }
 }
 

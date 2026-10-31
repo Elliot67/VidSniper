@@ -26,6 +26,10 @@ final class AppCoordinator {
     @ObservationIgnored private var recorder: Recorder?
     @ObservationIgnored private var recordingBar: RecordingBarController?
     @ObservationIgnored private var editors: [EditorWindowController] = []
+    @ObservationIgnored private var clickMonitor: Any?
+    @ObservationIgnored private var clicks: [ClickMark] = []
+    /// Zone en cours d'enregistrement (elle peut être déplacée), pour situer les clics.
+    @ObservationIgnored private var trackedRegion: CaptureRegion?
 
     static let shortcutLabel = "⌘⇧8"
 
@@ -117,10 +121,12 @@ final class AppCoordinator {
                     onMove: { region in
                         recorder.move(to: region.rect)
                         CaptureRegion.last = region
+                        self.trackedRegion = region
                     }
                 )
                 bar.show()
                 recordingBar = bar
+                startClickTracking(region: region)
             } catch {
                 lastError = "Impossible de démarrer l'enregistrement : \(error.localizedDescription)"
                 state = .idle
@@ -140,9 +146,41 @@ final class AppCoordinator {
         }
     }
 
+    // MARK: - Clics
+
+    /// Écoute les clics dans les autres apps pendant l'enregistrement (pas de permission nécessaire pour la souris).
+    /// Les clics sur la mini barre de VidSniper sont des événements locaux : ils ne sont pas comptés.
+    private func startClickTracking(region: CaptureRegion) {
+        clicks = []
+        trackedRegion = region
+        clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            MainActor.assumeIsolated { self?.recordClick() }
+        }
+    }
+
+    private func stopClickTracking() {
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+        clickMonitor = nil
+    }
+
+    private func recordClick() {
+        guard let recorder, let region = trackedRegion, let screen = region.screen,
+              let time = recorder.currentRecordingTime()
+        else { return }
+        let rect = region.globalRect(on: screen)
+        let location = NSEvent.mouseLocation
+        guard rect.contains(location), rect.width > 0, rect.height > 0 else { return }
+        clicks.append(ClickMark(
+            time: time,
+            x: (location.x - rect.minX) / rect.width,
+            y: (rect.maxY - location.y) / rect.height
+        ))
+    }
+
     func stopRecording() {
         guard state == .recording, let recorder else { return }
         state = .finishing
+        stopClickTracking()
         recordingBar?.close()
         recordingBar = nil
         // Activation tout de suite, pendant que macOS considère encore l'action (clic ou raccourci) comme récente :
@@ -151,7 +189,8 @@ final class AppCoordinator {
 
         Task {
             do {
-                let recording = try await recorder.stop()
+                var recording = try await recorder.stop()
+                recording.clicks = clicks
                 lastRecording = recording
                 self.recorder = nil
                 state = .idle

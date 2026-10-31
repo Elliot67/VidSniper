@@ -37,6 +37,8 @@ final class ExportModel {
     @ObservationIgnored private var duration: Double = 0
     @ObservationIgnored private var hasAudio = false
     @ObservationIgnored private var volumes: [AudioTrackVolume] = []
+    /// Clics à dessiner, déjà en temps du montage (`nil` : mise en évidence désactivée ou aucun clic).
+    @ObservationIgnored private var clicks: ClickOverlay?
     /// Description du montage (segments + pistes gardées) : avec les réglages, elle identifie un export.
     @ObservationIgnored private var signature = ""
     @ObservationIgnored private var exportTask: Task<Void, Never>?
@@ -77,13 +79,15 @@ final class ExportModel {
         signature: String,
         duration: Double,
         hasAudio: Bool,
-        volumes: [AudioTrackVolume]
+        volumes: [AudioTrackVolume],
+        clicks: ClickOverlay?
     ) {
         self.composition = composition
         self.signature = signature
         self.duration = duration
         self.hasAudio = hasAudio
         self.volumes = volumes
+        self.clicks = clicks
         scheduleExport()
     }
 
@@ -114,6 +118,7 @@ final class ExportModel {
         let destination = outputURL(for: key)
         let source = UncheckedSendable(composition)
         let volumes = volumes
+        let clicks = clicks
         exportTask = Task {
             // Regroupe les modifications rapprochées en un seul export.
             try? await Task.sleep(for: .milliseconds(500))
@@ -122,7 +127,9 @@ final class ExportModel {
             let temporary = destination.deletingLastPathComponent()
                 .appending(path: ".\(UUID().uuidString).mp4")
             do {
-                try await VideoExporter.export(source.value, plan: plan, volumes: volumes, to: temporary) { progress in
+                try await VideoExporter.export(
+                    source.value, plan: plan, volumes: volumes, clicks: clicks, to: temporary
+                ) { progress in
                     Task { @MainActor in
                         guard case .exporting = self.status else { return }
                         self.status = .exporting(progress: progress)

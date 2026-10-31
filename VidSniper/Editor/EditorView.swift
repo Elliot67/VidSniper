@@ -56,6 +56,16 @@ struct EditorView: View {
 
             Spacer()
 
+            ToggleChip(
+                isOn: Binding(get: { document.showClicks && document.hasClicks }, set: { document.setShowClicks($0) }),
+                title: "Clics",
+                onIcon: "cursorarrow.click.2",
+                offIcon: "cursorarrow"
+            )
+            .focusable(false)
+            .disabled(!document.hasClicks)
+            .help(document.hasClicks ? "Mettre en évidence les clics" : "Aucun clic pendant l'enregistrement")
+
             Button(action: document.cutAtPlayhead) {
                 Label("Couper", systemImage: "scissors")
             }

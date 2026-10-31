@@ -45,6 +45,10 @@ struct RecordingResult: Sendable {
     let url: URL
     let hasSystemAudio: Bool
     let hasMicrophone: Bool
+    /// Pixels de la vidéo par point d'écran (2 sur un écran Retina) : donne la taille des cercles de clic.
+    let pixelsPerPoint: Double
+    /// Clics faits dans la zone pendant l'enregistrement, en temps de la vidéo.
+    var clicks: [ClickMark] = []
 }
 
 /// Interrupteurs audio du sélecteur de zone, mémorisés d'une capture à l'autre.

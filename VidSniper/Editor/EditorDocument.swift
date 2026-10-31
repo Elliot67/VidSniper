@@ -83,6 +83,9 @@ final class EditorDocument {
     private(set) var loadError: String?
     private(set) var composition: AVComposition?
     private(set) var videoAspectRatio: CGFloat = 16 / 9
+    @ObservationIgnored private var videoPixelWidth: CGFloat = 0
+    /// Mise en évidence des clics, mémorisée d'une vidéo à l'autre (hors annuler/rétablir).
+    private(set) var showClicks = UserDefaults.standard.object(forKey: "showClicks") as? Bool ?? true
     private(set) var pendingTrim: PendingTrim?
     /// Image de la source au nouveau bord quand on rallonge un clip (elle n'est pas dans le montage).
     private(set) var trimPreviewFrame: CGImage?
@@ -209,6 +212,7 @@ final class EditorDocument {
             videoTransform = try await video.load(.preferredTransform)
             let size = try await video.load(.naturalSize)
             if size.height > 0 { videoAspectRatio = size.width / size.height }
+            videoPixelWidth = size.width
             export.videoSize = size
 
             // Ordre d'écriture du Recorder : son système, puis micro.
@@ -563,6 +567,13 @@ final class EditorDocument {
         apply(seekTo: currentTime) { $0.microphone = enabled }
     }
 
+    func setShowClicks(_ enabled: Bool) {
+        guard showClicks != enabled else { return }
+        showClicks = enabled
+        UserDefaults.standard.set(enabled, forKey: "showClicks")
+        rebuild(seekTo: currentTime)
+    }
+
     // MARK: - Annuler / rétablir
 
     func undo() {
@@ -637,23 +648,57 @@ final class EditorDocument {
         if wasPlaying { player.play() }
 
         // L'export travaille sur une copie figée, indépendante des prochaines modifications.
-        if let snapshot = composition.copy() as? AVComposition {
-            export.compositionChanged(
-                snapshot,
-                signature: editSignature,
-                duration: duration,
-                hasAudio: !audioSources.isEmpty,
-                volumes: audioVolumes
-            )
+        guard let snapshot = composition.copy() as? AVComposition else { return }
+        let clicks = clickOverlay
+        export.compositionChanged(
+            snapshot,
+            signature: editSignature,
+            duration: duration,
+            hasAudio: !audioSources.isEmpty,
+            volumes: audioVolumes,
+            clicks: clicks
+        )
+
+        // Aperçu fidèle : les clics sont dessinés par la même composition Core Image que l'export.
+        if let clicks {
+            let source = UncheckedSendable<AVAsset>(snapshot)
+            Task {
+                guard let videoComposition = try? await VideoEffects.videoComposition(
+                    for: source, clicks: clicks, renderSize: nil, frameRate: nil
+                ), player.currentItem === item else { return }
+                item.videoComposition = videoComposition
+            }
         }
     }
 
-    /// Description textuelle du montage (segments à la milliseconde + pistes gardées), clé du cache d'export.
+    /// Description textuelle du montage (segments à la milliseconde + pistes gardées + clics), clé du cache d'export.
     private var editSignature: String {
         let segments = state.segments
             .map { String(format: "%.3f-%.3f", $0.range.start.seconds, $0.range.end.seconds) }
             .joined(separator: ",")
-        return "\(segments)|s\(state.systemAudio ? 1 : 0)m\(state.microphone ? 1 : 0)"
+        let clicks = clickOverlay == nil ? 0 : 1
+        return "\(segments)|s\(state.systemAudio ? 1 : 0)m\(state.microphone ? 1 : 0)c\(clicks)"
+    }
+
+    // MARK: - Clics
+
+    var hasClicks: Bool { !recording.clicks.isEmpty }
+
+    /// Cercles de clic en temps du montage : chaque clic tombant dans un segment gardé y est replacé.
+    private var clickOverlay: ClickOverlay? {
+        guard showClicks, hasClicks, videoPixelWidth > 0 else { return nil }
+        let starts = segmentStarts
+        var clicks: [ClickMark] = []
+        for (index, segment) in state.segments.enumerated() {
+            let start = segment.range.start.seconds
+            let end = segment.range.end.seconds
+            for click in recording.clicks where click.time >= start && click.time < end {
+                clicks.append(ClickMark(time: starts[index] + click.time - start, x: click.x, y: click.y))
+            }
+        }
+        guard !clicks.isEmpty else { return nil }
+        // Rayon de 22 points d'écran, quelle que soit la taille de la zone.
+        return ClickOverlay(clicks: clicks, radius: 22 * recording.pixelsPerPoint / videoPixelWidth)
     }
 
     /// Vignette du début du montage (aperçu de la vidéo à glisser).

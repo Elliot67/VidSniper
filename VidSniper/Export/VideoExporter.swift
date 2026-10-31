@@ -19,11 +19,12 @@ enum VideoExporter {
         _ composition: AVComposition,
         plan: ExportPlan,
         volumes: [AudioTrackVolume],
+        clicks: ClickOverlay?,
         to url: URL,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws {
         try? FileManager.default.removeItem(at: url)
-        let job = try await ExportJob(composition: composition, plan: plan, volumes: volumes, url: url)
+        let job = try await ExportJob(composition: composition, plan: plan, volumes: volumes, clicks: clicks, url: url)
         try await withTaskCancellationHandler {
             try await job.run(duration: plan.duration, progress: progress)
         } onCancel: {
@@ -40,8 +41,16 @@ private final class ExportJob: @unchecked Sendable {
     private let videoInput: AVAssetWriterInput
     private let audioOutput: AVAssetReaderAudioMixOutput?
     private let audioInput: AVAssetWriterInput?
+    /// Gain appliqué au son mixé (voir `AVAudioMix.forExport`).
+    private let audioMasterGain: Float
 
-    init(composition: AVComposition, plan: ExportPlan, volumes: [AudioTrackVolume], url: URL) async throws {
+    init(
+        composition: AVComposition,
+        plan: ExportPlan,
+        volumes: [AudioTrackVolume],
+        clicks: ClickOverlay?,
+        url: URL
+    ) async throws {
         do {
             reader = try AVAssetReader(asset: composition)
         } catch {
@@ -49,14 +58,25 @@ private final class ExportJob: @unchecked Sendable {
         }
         let videoTracks = try await composition.loadTracks(withMediaType: .video)
         let audioTracks = try await composition.loadTracks(withMediaType: .audio)
+        let renderSize = CGSize(width: plan.width, height: plan.height)
 
         // Composition vidéo à 30 i/s (l'enregistrement est à 60 i/s, variable), rendue directement à la taille
         // d'export : à 75 % ou 50 %, il y a beaucoup moins de pixels à composer puis à encoder.
-        let videoComposition = try await AVMutableVideoComposition.videoComposition(withPropertiesOf: composition)
-        videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(ExportPlan.frameRate))
-        if let track = videoTracks.first {
+        // Avec des clics à dessiner, on passe par Core Image ; sinon, le chemin direct (plus rapide).
+        let videoComposition: AVMutableVideoComposition
+        if let clicks {
+            videoComposition = try await VideoEffects.videoComposition(
+                for: UncheckedSendable(composition),
+                clicks: clicks,
+                renderSize: renderSize,
+                frameRate: ExportPlan.frameRate
+            )
+        } else {
+            videoComposition = try await AVMutableVideoComposition.videoComposition(withPropertiesOf: composition)
+            videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(ExportPlan.frameRate))
+        }
+        if clicks == nil, let track = videoTracks.first {
             let naturalSize = videoComposition.renderSize
-            let renderSize = CGSize(width: plan.width, height: plan.height)
             if naturalSize.width > 0, naturalSize.height > 0, naturalSize != renderSize {
                 let transform = try await track.load(.preferredTransform)
                     .concatenating(CGAffineTransform(
@@ -81,21 +101,26 @@ private final class ExportJob: @unchecked Sendable {
         reader.add(videoOutput)
 
         if plan.hasAudio, !audioTracks.isEmpty {
+            // Float32 : le gain global se calcule directement sur les échantillons mixés.
             let output = AVAssetReaderAudioMixOutput(audioTracks: audioTracks, audioSettings: [
                 AVFormatIDKey: kAudioFormatLinearPCM,
                 AVSampleRateKey: 48_000,
                 AVNumberOfChannelsKey: 2,
-                AVLinearPCMBitDepthKey: 16,
-                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMBitDepthKey: 32,
+                AVLinearPCMIsFloatKey: true,
                 AVLinearPCMIsBigEndianKey: false,
                 AVLinearPCMIsNonInterleaved: false,
             ])
-            output.alwaysCopiesSampleData = false
-            output.audioMix = AVAudioMix.with(volumes)
+            let (mix, masterGain) = AVAudioMix.forExport(volumes)
+            // Les échantillons sont modifiés sur place : il faut une copie à nous.
+            output.alwaysCopiesSampleData = masterGain != 1
+            output.audioMix = mix
             reader.add(output)
             audioOutput = output
+            audioMasterGain = masterGain
         } else {
             audioOutput = nil
+            audioMasterGain = 1
         }
 
         do {
@@ -149,7 +174,8 @@ private final class ExportJob: @unchecked Sendable {
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
                 var lastReported = -1.0
-                await self.pump(self.videoOutput, into: self.videoInput, label: "video") { time in
+                await self.pump(self.videoOutput, into: self.videoInput, label: "video") { sampleBuffer in
+                    let time = sampleBuffer.presentationTimeStamp
                     let value = duration > 0 ? min(1, time.seconds / duration) : 0
                     if value - lastReported >= 0.01 {
                         lastReported = value
@@ -158,8 +184,11 @@ private final class ExportJob: @unchecked Sendable {
                 }
             }
             if let audioOutput, let audioInput {
+                let gain = audioMasterGain
                 group.addTask {
-                    await self.pump(audioOutput, into: audioInput, label: "audio", onSample: nil)
+                    await self.pump(audioOutput, into: audioInput, label: "audio") { sampleBuffer in
+                        applyGain(gain, to: sampleBuffer)
+                    }
                 }
             }
         }
@@ -180,11 +209,12 @@ private final class ExportJob: @unchecked Sendable {
     }
 
     /// Recopie les échantillons de la sortie du lecteur vers l'entrée du writer, au rythme du writer.
+    /// `onSample` voit (et peut modifier) chaque tampon avant son écriture.
     private func pump(
         _ output: AVAssetReaderOutput,
         into input: AVAssetWriterInput,
         label: String,
-        onSample: ((CMTime) -> Void)?
+        onSample: ((CMSampleBuffer) -> Void)?
     ) async {
         nonisolated(unsafe) let output = output
         nonisolated(unsafe) let input = input
@@ -198,7 +228,7 @@ private final class ExportJob: @unchecked Sendable {
                         continuation.resume()
                         return
                     }
-                    onSample?(sampleBuffer.presentationTimeStamp)
+                    onSample?(sampleBuffer)
                     if !input.append(sampleBuffer) {
                         reader.cancelReading()
                     }

@@ -12,7 +12,9 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 1 | Raccourci global, sélecteur de zone, capture 3 pistes, mini barre, déplacement de zone en cours d'enregistrement | Fait |
 | 2 | Éditeur : lecture, trim, cuts, pistes audio, raccourcis clavier, annuler, timeline zoomable | Fait |
 | 3 | Export : réglages, estimation, glisser, copier, enregistrer, cache ; niveaux audio automatiques + balance | Fait |
-| 4 (bonus) | Mise en évidence des clics, rectangle/ellipse sur une plage de temps, remplacement d'une piste audio | À faire |
+| 4 (bonus) | Mise en évidence des clics | Fait (animation à valider) |
+| 4 (bonus) | Installation dans `/Applications`, vérification du lancement à l'ouverture de session, réglage du raccourci global, icône de l'app | À faire (prochaine étape) |
+| 4 (bonus) | Rectangle/ellipse sur une plage de temps, remplacement d'une piste audio | À faire |
 | 5 (plus tard, à la fin) | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur | À faire |
 
 ### Notes pour l'import de vidéo (phase 5)
@@ -107,7 +109,9 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
     - **Balance** : un **curseur vertical entre les deux lignes de son**, dans la colonne de gauche. En haut, le son système ressort ; en bas, la voix ressort ; au milieu (repère, aimanté), même niveau perçu. Écart maximal ±20 dB : la piste en retrait est atténuée, l'autre reste au niveau cible. Par défaut : la voix ressort, son système 10 dB plus bas. Double-clic : réglage par défaut. Mémorisée pour toutes les vidéos, hors annuler/rétablir.
     - La balance est grisée (avec la raison en bulle d'aide) si une piste est coupée ou sans son : la piste restante est simplement normalisée.
     - Les lignes de niveau sonore affichent le **niveau final** (après normalisation et balance), de -40 dBFS (vide) à 0 dBFS (pleine hauteur).
-    - Technique : `setVolume` d'`AVAudioMix` est limité à 100 %, le gain passe donc par un traitement audio maison (`MTAudioProcessingTap`, `AudioGain.swift`) qui multiplie les échantillons et les écrête à ±1. À la lecture, il lit le gain en continu (la balance s'entend en direct, sans reconstruire le mix). À l'export, le même traitement est appliqué au mix lu par `AVAssetReaderAudioMixOutput` (à vérifier à l'écoute du MP4).
+    - Technique : `setVolume` d'`AVAudioMix` est limité à 100 %.
+      - **Lecture** : le gain passe par un traitement audio maison (`MTAudioProcessingTap`, `AudioGain.swift`) qui multiplie les échantillons et les écrête à ±1, et lit le gain en continu (la balance s'entend en direct, sans reconstruire le mix).
+      - **Export** : **pas de `MTAudioProcessingTap`**. AVFoundation plantait au démarrage de la lecture (`AVAssetReaderAudioMixOutput startReading`) quand ces traitements étaient combinés à la composition vidéo Core Image des clics. Les volumes sont divisés par le plus fort pour rester sous 100 % (`setVolume`), puis ce gain global est réappliqué sur le son mixé (Float32), écrêté à ±1. Même résultat, le mix étant linéaire.
   - **Défilement horizontal et zoom** : par défaut, tout le montage tient dans la largeur, sauf s'il devient trop serré (minimum 30 pt/s, on défile alors). Pendant la lecture, la timeline suit la tête de lecture.
     - Trackpad au-dessus de la timeline : **pincer pour zoomer** (le point sous les doigts reste fixe), **glisser verticalement à deux doigts** (ou molette) pour défiler horizontalement. Le glisser horizontal marche aussi. Ces gestes sont interceptés en AppKit (moniteur local), car la ScrollView SwiftUI les garde pour elle.
     - Aussi : boutons −/+ et ⌘+ / ⌘−, où c'est la tête de lecture qui reste fixe.
@@ -141,6 +145,16 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
 | ⌘S | Enregistrer une copie de la vidéo exportée |
 
 Les lettres sont lues d'après le caractère tapé et non la position de la touche, pour fonctionner en AZERTY.
+
+### Mise en évidence des clics (phase 4)
+
+- **Pendant l'enregistrement** : un moniteur global d'événements souris (pas de permission nécessaire, contrairement au clavier) note chaque clic gauche ou droit fait **dans la zone** : instant dans la vidéo (pauses déduites, rien pendant une pause) et position normalisée dans la zone (qui peut avoir été déplacée). Les clics sur la mini barre de VidSniper ne sont pas comptés.
+- **Rendu** : deux bulles superposées, rayon de référence de 22 points d'écran quelle que soit la taille de la zone.
+  - Un disque violet translucide cerclé, qui grandit (45 % → 100 % du rayon) et s'efface en 0,5 s.
+  - Une onde : un simple contour fin, qui part **0,2 s après** le disque, dure 0,6 s et va plus loin (50 % → 200 % du rayon). On voit d'abord le petit disque, puis la grande onde. Animation complète : 0,8 s. L'onde s'efface dès son départ (opacité (1 - avancement)^1,5, ~35 % à mi-parcours) pour être déjà très transparente à sa taille maximale ; le disque reste bien visible puis s'efface vers la fin (1 - avancement²).
+- **Dans l'éditeur** : pastille "Clics" dans la barre de contrôles (grisée s'il n'y a eu aucun clic). Réglage mémorisé d'une vidéo à l'autre, hors annuler/rétablir. Les clics suivent le montage (un clic dans une partie coupée disparaît).
+- **Aperçu fidèle** : les cercles sont dessinés par une composition vidéo Core Image (`VideoEffects.swift`), la même à la lecture et à l'export. Sans clics, l'export garde le chemin direct, plus rapide.
+- Limite : les clics ne sont gardés qu'en mémoire avec l'enregistrement (pas de fichier à côté du `.mov`).
 
 ### 4. Export (panneau en bas de l'éditeur)
 

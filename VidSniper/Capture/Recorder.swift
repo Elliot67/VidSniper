@@ -30,6 +30,9 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
 
     private var sessionStarted = false
     private var lastVideoTime = CMTime.invalid
+    /// Horodatage (horloge système) de la première image : le zéro de la vidéo.
+    private var sessionStartTime = CMTime.invalid
+    private var pixelsPerPoint = 2.0
     private var pauseStartedAt: CMTime?
     /// Durée cumulée des pauses, retirée des horodatages pour ne pas laisser de trou.
     private var timeOffset = CMTime.zero
@@ -50,6 +53,7 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
         let filter = SCContentFilter(display: display, excludingApplications: ownApps, exceptingWindows: [])
 
         let scale = await MainActor.run { region.screen?.backingScaleFactor ?? 2 }
+        pixelsPerPoint = scale
         let width = Self.evenPixels(region.rect.width * scale)
         let height = Self.evenPixels(region.rect.height * scale)
 
@@ -102,6 +106,14 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
                 try? await stream.updateConfiguration(configuration)
             }
             isUpdatingSourceRect = false
+        }
+    }
+
+    /// Instant courant dans la vidéo (pauses déduites), ou `nil` avant la première image et pendant une pause.
+    func currentRecordingTime() -> Double? {
+        queue.sync {
+            guard sessionStarted, pauseStartedAt == nil, sessionStartTime.isValid else { return nil }
+            return (Self.hostTime() - timeOffset - sessionStartTime).seconds
         }
     }
 
@@ -190,6 +202,7 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
 
             if !sessionStarted {
                 writer.startSession(atSourceTime: sampleBuffer.presentationTimeStamp)
+                sessionStartTime = sampleBuffer.presentationTimeStamp
                 sessionStarted = true
             }
             if append(sampleBuffer, to: videoInput) {
@@ -229,7 +242,8 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
         let result = RecordingResult(
             url: outputURL,
             hasSystemAudio: systemAudioInput != nil,
-            hasMicrophone: microphoneInput != nil
+            hasMicrophone: microphoneInput != nil,
+            pixelsPerPoint: pixelsPerPoint
         )
         writer.finishWriting {
             if self.writer?.status == .completed {
