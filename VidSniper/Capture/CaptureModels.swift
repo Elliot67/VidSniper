@@ -40,7 +40,8 @@ struct CaptureOptions: Sendable {
     let systemAudio: Bool
 }
 
-/// Résultat d'un enregistrement. Les pistes audio sont écrites dans l'ordre : son système, puis micro.
+/// Vidéo à éditer : un enregistrement VidSniper, ou une vidéo importée.
+/// Les pistes audio sont dans l'ordre : son système, puis micro (pour une vidéo importée : audio 1, puis audio 2).
 struct RecordingResult: Sendable {
     let url: URL
     let hasSystemAudio: Bool
@@ -49,6 +50,21 @@ struct RecordingResult: Sendable {
     let pixelsPerPoint: Double
     /// Clics faits dans la zone pendant l'enregistrement, en temps de la vidéo.
     var clicks: [ClickMark] = []
+    /// Vidéo importée : fichier de l'utilisateur, jamais modifié ni purgé, pistes audio génériques.
+    var isImported = false
+
+    /// Nom de la ligne audio dans l'éditeur.
+    func audioTitle(microphone: Bool) -> String {
+        guard isImported else { return microphone ? "Micro" : "Son système" }
+        if !hasMicrophone { return "Audio" }
+        return microphone ? "Audio 2" : "Audio 1"
+    }
+
+    /// Icônes de la pastille audio (piste gardée, piste coupée).
+    func audioIcons(microphone: Bool) -> (on: String, off: String) {
+        if isImported { return ("waveform", "waveform.slash") }
+        return microphone ? ("mic.fill", "mic.slash.fill") : ("speaker.wave.2.fill", "speaker.slash.fill")
+    }
 }
 
 /// Interrupteurs audio du sélecteur de zone, mémorisés d'une capture à l'autre.

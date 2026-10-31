@@ -22,6 +22,12 @@ struct MainView: View {
                 Text(coordinator.shortcut.label)
                     .font(.system(size: 12, design: .monospaced))
                     .foregroundStyle(Theme.textMuted)
+
+                Spacer()
+
+                Button("Importer une vidéo…") { coordinator.importVideo() }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .help("Ouvrir une vidéo existante dans l'éditeur (⌘O, ou glisser le fichier sur la fenêtre)")
             }
 
             if let error = coordinator.lastError {
@@ -43,11 +49,27 @@ struct MainView: View {
         .padding(Theme.spacing * 2)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.backgroundPrimary)
+        .overlay {
+            if isDropTargeted {
+                RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                    .padding(8)
+                    .allowsHitTesting(false)
+            }
+        }
+        // Glisser une vidéo sur la fenêtre l'ouvre dans l'éditeur.
+        .dropDestination(for: URL.self) { urls, _ in
+            guard let url = urls.first else { return false }
+            coordinator.openVideo(at: url)
+            return true
+        } isTargeted: { isDropTargeted = $0 }
         // Rafraîchit au retour depuis les Réglages système.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             permissions.refresh()
         }
     }
+
+    @State private var isDropTargeted = false
 
     /// Permet de rouvrir l'éditeur si on l'a fermé par erreur.
     private func lastRecordingPanel(_ recording: RecordingResult) -> some View {
@@ -78,9 +100,9 @@ struct MainView: View {
     }
 
     private func audioSummary(_ recording: RecordingResult) -> String {
-        var tracks = ["Vidéo"]
-        if recording.hasSystemAudio { tracks.append("son système") }
-        if recording.hasMicrophone { tracks.append("micro") }
+        var tracks = [recording.isImported ? "Vidéo importée" : "Vidéo"]
+        if recording.hasSystemAudio { tracks.append(recording.audioTitle(microphone: false).lowercased()) }
+        if recording.hasMicrophone { tracks.append(recording.audioTitle(microphone: true).lowercased()) }
         return tracks.joined(separator: " + ")
     }
 

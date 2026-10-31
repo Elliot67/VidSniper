@@ -219,7 +219,7 @@ struct EditorTimeline: View {
                     }
                 }
                 Spacer(minLength: 0)
-                // Balance entre les deux lignes de son : en haut le son système ressort, en bas la voix.
+                // Balance entre les deux lignes de son : en haut la première piste ressort, en bas la seconde (la voix).
                 if lanes.count == 2 {
                     BalanceSlider(
                         value: Binding(get: { document.balance }, set: { document.balance = $0 }),
@@ -234,35 +234,38 @@ struct EditorTimeline: View {
         .frame(width: Self.headerWidth, alignment: .leading)
     }
 
-    @ViewBuilder
+    /// Libellé d'une piste ("Son système"/"Micro", ou "Audio 1"/"Audio 2" pour une vidéo importée).
+    private func title(_ lane: Lane) -> String {
+        document.recording.audioTitle(microphone: lane == .microphone)
+    }
+
     private func laneChip(_ lane: Lane) -> some View {
-        switch lane {
-        case .systemAudio:
-            ToggleChip(
-                isOn: Binding(get: { document.state.systemAudio }, set: { document.setSystemAudio($0) }),
-                title: "Son système",
-                onIcon: "speaker.wave.2.fill",
-                offIcon: "speaker.slash.fill"
-            )
-            .help(document.isSilent(microphone: false) ? "Pas de son détecté sur le son système" : "Garder ou couper le son système")
-        case .microphone:
-            ToggleChip(
-                isOn: Binding(get: { document.state.microphone }, set: { document.setMicrophone($0) }),
-                title: "Micro",
-                onIcon: "mic.fill",
-                offIcon: "mic.slash.fill"
-            )
-            .help(document.isSilent(microphone: true) ? "Pas de son détecté sur le micro" : "Garder ou couper le micro")
-        }
+        let isMicrophone = lane == .microphone
+        let icons = document.recording.audioIcons(microphone: isMicrophone)
+        let name = title(lane)
+        return ToggleChip(
+            isOn: Binding(
+                get: { isMicrophone ? document.state.microphone : document.state.systemAudio },
+                set: { isMicrophone ? document.setMicrophone($0) : document.setSystemAudio($0) }
+            ),
+            title: name,
+            onIcon: icons.on,
+            offIcon: icons.off
+        )
+        .help(document.isSilent(microphone: isMicrophone)
+            ? "Pas de son détecté (\(name))"
+            : "Garder ou couper la piste \(name)")
     }
 
     private var balanceHelp: String {
-        if document.isSilent(microphone: true) { return "Balance indisponible : pas de son détecté sur le micro" }
-        if document.isSilent(microphone: false) { return "Balance indisponible : pas de son détecté sur le son système" }
+        let top = title(.systemAudio)
+        let bottom = title(.microphone)
+        if document.isSilent(microphone: true) { return "Balance indisponible : pas de son détecté (\(bottom))" }
+        if document.isSilent(microphone: false) { return "Balance indisponible : pas de son détecté (\(top))" }
         guard document.isBalanceAvailable else { return "Balance : il faut garder les deux pistes" }
         let offset = Int((abs(document.balance) * EditorDocument.balanceRange).rounded())
-        if offset == 0 { return "Balance : voix et son système au même niveau (double-clic : réglage par défaut)" }
-        let quieter = document.balance < 0 ? "son système" : "voix"
+        if offset == 0 { return "Balance : \(bottom) et \(top) au même niveau (double-clic : réglage par défaut)" }
+        let quieter = document.balance < 0 ? top : bottom
         return "Balance : \(quieter) \(offset) dB plus bas (double-clic : réglage par défaut)"
     }
 

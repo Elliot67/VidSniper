@@ -35,6 +35,13 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: "15.0"
         NSMicrophoneUsageDescription: VidSniper enregistre le micro pendant tes captures d'écran.
+        # Vidéos ouvrables depuis le Finder ("Ouvrir avec") ou en les glissant sur l'icône du Dock.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Vidéo
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.movie
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.elintz.VidSniper

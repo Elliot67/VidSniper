@@ -210,7 +210,10 @@ final class EditorDocument {
             }
             videoTrack = video
             videoTransform = try await video.load(.preferredTransform)
-            let size = try await video.load(.naturalSize)
+            // Taille affichée : une vidéo filmée en portrait est stockée couchée, avec une rotation à appliquer.
+            let naturalSize = try await video.load(.naturalSize)
+            let rotated = CGRect(origin: .zero, size: naturalSize).applying(videoTransform)
+            let size = CGSize(width: abs(rotated.width), height: abs(rotated.height))
             if size.height > 0 { videoAspectRatio = size.width / size.height }
             videoPixelWidth = size.width
             export.videoSize = size

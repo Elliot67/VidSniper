@@ -56,15 +56,18 @@ struct EditorView: View {
 
             Spacer()
 
-            ToggleChip(
-                isOn: Binding(get: { document.showClicks && document.hasClicks }, set: { document.setShowClicks($0) }),
-                title: "Clics",
-                onIcon: "cursorarrow.click.2",
-                offIcon: "cursorarrow"
-            )
-            .focusable(false)
-            .disabled(!document.hasClicks)
-            .help(document.hasClicks ? "Mettre en évidence les clics" : "Aucun clic pendant l'enregistrement")
+            // Pas de clics pour une vidéo importée : la pastille n'a pas de sens.
+            if !document.recording.isImported {
+                ToggleChip(
+                    isOn: Binding(get: { document.showClicks && document.hasClicks }, set: { document.setShowClicks($0) }),
+                    title: "Clics",
+                    onIcon: "cursorarrow.click.2",
+                    offIcon: "cursorarrow"
+                )
+                .focusable(false)
+                .disabled(!document.hasClicks)
+                .help(document.hasClicks ? "Mettre en évidence les clics" : "Aucun clic pendant l'enregistrement")
+            }
 
             Button(action: document.cutAtPlayhead) {
                 Label("Couper", systemImage: "scissors")

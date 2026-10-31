@@ -263,6 +263,34 @@ final class AppCoordinator {
         }
     }
 
+    // MARK: - Import
+
+    /// Choix d'une vidéo existante à éditer (bouton, ⌘O).
+    func importVideo() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = VideoImporter.contentTypes
+        panel.allowsMultipleSelection = false
+        panel.message = "Choisis une vidéo à éditer"
+        NSApp.activate()
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        openVideo(at: url)
+    }
+
+    /// Ouvre une vidéo existante dans l'éditeur (import, glisser-déposer, "Ouvrir avec" depuis le Finder).
+    func openVideo(at url: URL) {
+        Task {
+            do {
+                let video = try await VideoImporter.inspect(url)
+                lastError = nil
+                lastRecording = video
+                openEditor(video)
+            } catch {
+                lastError = error.localizedDescription
+                showMainWindow()
+            }
+        }
+    }
+
     // MARK: - Éditeur
 
     func openEditor(_ recording: RecordingResult) {

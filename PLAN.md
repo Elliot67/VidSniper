@@ -13,15 +13,20 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 2 | Éditeur : lecture, trim, cuts, pistes audio, raccourcis clavier, annuler, timeline zoomable | Fait |
 | 3 | Export : réglages, estimation, glisser, copier, enregistrer, cache ; niveaux audio automatiques + balance | Fait |
 | 4 (bonus) | Mise en évidence des clics | Fait (animation à valider) |
-| 4 (bonus) | Installation dans `/Applications`, réglage du raccourci global, icône de l'app | Fait (à tester) |
-| 4 (bonus) | Rectangle/ellipse sur une plage de temps, remplacement d'une piste audio | À faire |
-| 5 (plus tard, à la fin) | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur | À faire |
+| 4 (bonus) | Installation dans `/Applications`, réglage du raccourci global, icône de l'app | Fait |
+| 4 (bonus) | Annotations pour mettre un élément en avant, sur une plage de temps | En cours (cadrage) |
+| 5 | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur (version de base, sans clics) | Fait |
+| - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
-### Notes pour l'import de vidéo (phase 5)
+### Import de vidéo (phase 5)
 
-- Ouvrir un fichier (bouton dans la fenêtre principale, glisser-déposer sur l'icône du Dock ou sur la fenêtre, ⌘O).
-- L'éditeur suppose aujourd'hui un `.mov` VidSniper : pistes audio dans l'ordre son système puis micro, une piste vidéo. Pour un fichier importé : pistes audio quelconques (0, 1 ou plusieurs), libellés génériques ("Audio 1", "Audio 2"…), éventuelle rotation (`preferredTransform`), fréquence d'images variable.
-- Le fichier importé ne doit jamais être modifié ni supprimé par la purge des 24 h (seul l'export va dans le cache).
+- **Ouvrir** : bouton "Importer une vidéo…" dans la fenêtre principale, **⌘O** (menu Fichier), **glisser le fichier sur la fenêtre principale** (cadre violet en pointillés au survol), **glisser sur l'icône du Dock** ou **"Ouvrir avec → VidSniper"** dans le Finder (`CFBundleDocumentTypes` : `public.movie`, rôle Viewer, rang Alternate pour ne pas devenir l'app par défaut). Une vidéo reçue pendant le démarrage est ouverte une fois l'app prête.
+- **Formats** : tout ce qu'AVFoundation lit (`.mov`, `.mp4`, `.m4v` ; H.264, HEVC, ProRes…). Fichier illisible ou sans piste vidéo : refusé avec un message dans la fenêtre principale.
+- **Pistes audio** : l'éditeur garde ses deux emplacements. 1 piste → ligne "Audio" ; 2 pistes ou plus → "Audio 1" et "Audio 2" avec la balance entre les deux ; les pistes suivantes (rares) sont ignorées. Icônes génériques (forme d'onde). Choix assumé : les pistes alternatives (langues d'un film) ne sont pas distinguées, elles seraient mixées, car ce cas n'est pas visé. Normalisation automatique et garde-fous des pistes muettes comme pour un enregistrement.
+- **Rotation** : les dimensions (proportions, miniatures, taille d'export) tiennent compte de la rotation de la piste (vidéo de téléphone en portrait).
+- **Fichier d'origine jamais touché** : lu en place, ni copié, ni modifié, ni purgé (la purge ne vise que `~/Library/Caches/VidSniper`). Le MP4 exporté porte le nom du fichier d'origine.
+- **Pas de clics** : la pastille "Clics" est masquée pour une vidéo importée.
+- La fenêtre principale garde la dernière vidéo ouverte ("Vidéo importée + audio 1 + audio 2") pour rouvrir l'éditeur.
 
 ## Le déroulé
 
