@@ -106,6 +106,8 @@ private final class ExportJob: @unchecked Sendable {
             }
         }
 
+        VideoColor.apply(to: videoComposition)
+
         videoOutput = AVAssetReaderVideoCompositionOutput(videoTracks: videoTracks, videoSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
         ])
@@ -149,6 +151,7 @@ private final class ExportJob: @unchecked Sendable {
             AVVideoWidthKey: plan.width,
             AVVideoHeightKey: plan.height,
             AVVideoScalingModeKey: AVVideoScalingModeResizeAspect,
+            AVVideoColorPropertiesKey: VideoColor.properties,
             AVVideoCompressionPropertiesKey: [
                 AVVideoAverageBitRateKey: plan.videoBitrate,
                 AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,

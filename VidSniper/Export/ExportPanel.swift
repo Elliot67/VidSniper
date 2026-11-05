@@ -1,10 +1,13 @@
 import SwiftUI
 
-/// Panneau de l'onglet Export : taille et qualité (avec le poids de chaque option), poids du MP4,
-/// et la vidéo prête à glisser ou copier.
+/// Panneau de l'onglet Export : définition et compression (avec le poids de chaque niveau), et la vidéo prête
+/// à glisser ou copier. L'erreur d'export éventuelle s'affiche sur l'aperçu.
 struct ExportPanel: View {
     let export: ExportModel
     let thumbnail: CGImage?
+    /// Boutons de compression de même largeur : une ligne régulière, quel que soit le nom du niveau.
+    private static let qualityTileWidth: CGFloat = 76
+    private static let tileSpacing: CGFloat = 6
 
     var body: some View {
         HStack(alignment: .center, spacing: Theme.spacing * 1.5) {
@@ -27,20 +30,21 @@ struct ExportPanel: View {
                     }
                 }
                 optionRow("Compression") {
-                    ForEach(ExportQuality.allCases) { quality in
-                        OptionTile(
-                            title: quality.label,
-                            weight: export.weight(resolution: export.resolution, quality: quality),
-                            isSelected: export.quality == quality
-                        ) {
-                            export.quality = quality
+                    HStack(spacing: Self.tileSpacing) {
+                        ForEach(ExportQuality.allCases) { quality in
+                            OptionTile(
+                                title: quality.label,
+                                weight: export.weight(resolution: export.resolution, quality: quality),
+                                isSelected: export.quality == quality,
+                                width: Self.qualityTileWidth
+                            ) {
+                                export.quality = quality
+                            }
                         }
                     }
                 }
             }
             .focusable(false)
-
-            summary
 
             Spacer(minLength: 0)
 
@@ -81,13 +85,11 @@ struct ExportPanel: View {
             .focusable(false)
         }
         .padding(Theme.spacing)
+        // Bordure en arrière-plan : rien de ce qui passe par-dessus le panneau n'est traversé.
         .background(
             RoundedRectangle(cornerRadius: Theme.cornerRadius)
                 .fill(Theme.backgroundSecondary)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .stroke(Theme.border, lineWidth: 1)
+                .strokeBorder(Theme.border, lineWidth: 1)
         )
     }
 
@@ -105,38 +107,6 @@ struct ExportPanel: View {
                 .foregroundStyle(Theme.textMuted)
                 .frame(width: 72, alignment: .leading)
             content()
-        }
-    }
-
-    // MARK: - Résumé
-
-    private var summary: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            if let plan = export.plan {
-                Text(verbatim: "\(plan.width) × \(plan.height) · MP4")
-                    .font(.system(size: 12).monospacedDigit())
-                    .foregroundStyle(Theme.textNormal)
-            }
-            Text(sizeText)
-                .font(.system(size: 12).monospacedDigit())
-                .foregroundStyle(Theme.textMuted)
-            if case .failed(let message) = export.status {
-                Text(message)
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.error)
-                    .lineLimit(2)
-                    .frame(maxWidth: 220, alignment: .leading)
-            }
-        }
-    }
-
-    private var sizeText: String {
-        switch export.status {
-        case .ready(_, let bytes):
-            return String(localized: "Size: \(Self.format(bytes))")
-        default:
-            guard let plan = export.plan else { return "" }
-            return String(localized: "Estimate: ≈ \(Self.format(plan.estimatedBytes))")
         }
     }
 
@@ -213,7 +183,11 @@ private struct OptionTile: View {
     var detail: String?
     let weight: (bytes: Int64, isEstimate: Bool)?
     let isSelected: Bool
+    /// Largeur du contenu imposée (boutons de compression, tous de même largeur).
+    var width: CGFloat?
     let action: () -> Void
+
+    static let horizontalPadding: CGFloat = 9
 
     var body: some View {
         Button(action: action) {
@@ -225,8 +199,8 @@ private struct OptionTile: View {
                     .font(.system(size: 10).monospacedDigit())
                     .foregroundStyle(isSelected ? Color.white.opacity(0.8) : Theme.textMuted)
             }
-            .frame(minWidth: 70, alignment: .leading)
-            .padding(.horizontal, 9)
+            .frame(minWidth: width ?? 70, maxWidth: width, alignment: .leading)
+            .padding(.horizontal, Self.horizontalPadding)
             .padding(.vertical, 4)
             .background(
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)

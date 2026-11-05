@@ -63,6 +63,8 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
         config.height = height
         config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
         config.pixelFormat = kCVPixelFormatType_32BGRA
+        // Couleurs converties en sRGB par le système, puis étiquetées ainsi dans le fichier (voir `VideoColor`).
+        config.colorSpaceName = CGColorSpace.sRGB
         config.showsCursor = true
         config.queueDepth = 6
         config.capturesAudio = options.systemAudio
@@ -149,6 +151,7 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
             AVVideoCodecKey: AVVideoCodecType.hevc,
             AVVideoWidthKey: width,
             AVVideoHeightKey: height,
+            AVVideoColorPropertiesKey: VideoColor.properties,
             AVVideoCompressionPropertiesKey: [
                 AVVideoAverageBitRateKey: max(4_000_000, width * height * 60 / 20),
                 AVVideoExpectedSourceFrameRateKey: 60,

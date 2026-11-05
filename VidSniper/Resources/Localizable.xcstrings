@@ -491,16 +491,6 @@
         }
       }
     },
-    "Estimate: ≈ %@" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estimation : ≈ %@"
-          }
-        }
-      }
-    },
     "Exit Full Screen" : {
       "localizations" : {
         "fr" : {
@@ -1227,16 +1217,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher toute la vidéo (⌘0)"
-          }
-        }
-      }
-    },
-    "Size: %@" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Poids : %@"
           }
         }
       }

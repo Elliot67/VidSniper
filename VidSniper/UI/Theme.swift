@@ -109,6 +109,28 @@ struct ChipLabel: View {
     }
 }
 
+/// Carte flottante aux couleurs de l'app (aide des raccourcis), à la place des popovers
+/// du système. Posée en surimpression au survol, elle ne capte pas la souris.
+struct FloatingCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Theme.backgroundPrimary)
+                    .shadow(color: .black.opacity(0.2), radius: 14, y: 6)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
+            .fixedSize()
+            .allowsHitTesting(false)
+    }
+}
+
 /// Touche de clavier dessinée (⌥, ⌘C…), pour montrer un raccourci dans un bouton.
 struct KeyCap: View {
     let keys: String

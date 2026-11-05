@@ -53,6 +53,24 @@ struct AudioTrackVolume: Equatable, Sendable {
     let volume: Float
 }
 
+/// Espace colorimétrique de toute la chaîne : capture en sRGB, enregistrement et MP4 étiquetés pareil
+/// (primaires et matrice BT.709, courbe sRGB). Sans étiquette, l'enregistrement était affiché tel quel,
+/// étiré sur la gamme de l'écran (plus vif), alors que le MP4 était converti : les couleurs différaient.
+enum VideoColor {
+    static let properties: [String: String] = [
+        AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+        AVVideoTransferFunctionKey: AVVideoTransferFunction_IEC_sRGB,
+        AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+    ]
+
+    /// Composition rendue dans ce même espace, pour que le MP4 garde les couleurs de l'enregistrement.
+    static func apply(to composition: AVMutableVideoComposition) {
+        composition.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+        composition.colorTransferFunction = AVVideoTransferFunction_IEC_sRGB
+        composition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
+    }
+}
+
 /// Paramètres concrets d'un export, et le poids estimé qui en découle.
 struct ExportPlan: Equatable, Sendable {
     static let frameRate = 30.0

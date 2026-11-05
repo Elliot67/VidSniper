@@ -54,6 +54,8 @@ struct EditorView: View {
         .padding(.vertical, Theme.spacing * 0.75)
         .background(Theme.backgroundPrimary)
         .focusable(false)
+        // L'aide des raccourcis s'affiche par-dessus la vidéo.
+        .zIndex(1)
     }
 
     private var editTab: some View {

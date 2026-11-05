@@ -61,9 +61,15 @@ struct ShortcutsHelp: View {
             .frame(width: 24, height: 24)
             .contentShape(Rectangle())
             .onHover { isShown = $0 }
-            .popover(isPresented: $isShown, arrowEdge: .bottom) {
-                list
+            // Sous le "?", calée à droite.
+            .overlay(alignment: .topTrailing) {
+                if isShown {
+                    FloatingCard { list }
+                        .alignmentGuide(.top) { $0[.top] - 32 }
+                        .transition(.opacity)
+                }
             }
+            .animation(.easeOut(duration: 0.15), value: isShown)
     }
 
     private var list: some View {
@@ -88,7 +94,5 @@ struct ShortcutsHelp: View {
                 }
             }
         }
-        .padding(14)
-        .fixedSize()
     }
 }
