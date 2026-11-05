@@ -18,6 +18,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 5 | **Importer un fichier vidéo** existant pour l'éditer et l'exporter avec le même éditeur (version de base, sans clics) | Fait |
 | 6 | Finitions : récupérer une partie supprimée en rallongeant un voisin, clics dans l'aperçu de rallonge, page d'accueil refaite avec le logo | Fait |
 | 7 | Traductions anglais / français (String Catalogs) | Fait, à tester |
+| 8 | Onglets Édition / Export : aperçu du MP4, bouton Original, zoom, poids de chaque option, confirmation de copie | 1er test : ⌘1/⌘2 corrigés, zoom libre, raccourci sur Original, confirmation de copie ; onglets pleine largeur (option A) |
 | - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
 ### Import de vidéo (phase 5)
@@ -217,9 +218,23 @@ But : mettre un élément en avant simplement, sans outil de dessin complexe.
 - **Annuler / rétablir** : chaque création, modification (un geste = une étape) ou suppression.
 - **Rendu** : dans l'éditeur, dessinées en SwiftUI par-dessus la vidéo (fluide pendant le tracé) ; à l'export, dessinées par Core Image (`AnnotationOverlay`) avec les mêmes formes, épaisseurs et couleurs, sous les cercles de clic. Modifier une annotation ne reconstruit pas le montage : seul l'export est relancé (et mis en cache comme le reste).
 
-### 4. Export (panneau en bas de l'éditeur)
+### 4. Export (onglet Export de l'éditeur)
+
+**Onglets Édition / Export** (phase 8, demande de l'utilisateur : vérifier que la vidéo compressée reste lisible) :
+- **Deux grands onglets Édition | Export sur toute la largeur** (⌘1 / ⌘2, touche dessinée sur chaque onglet ; option A choisie par l'utilisateur parmi 3 pistes, pour les mettre en avant), l'onglet affiché teinté de violet, en gras et souligné, l'autre en retrait (2e test : avec le fond clair sur l'onglet affiché, on croyait que c'était l'autre qui était actif). Dessous, une barre avec les outils de l'onglet (annotations, ou Original et zoom), aide des raccourcis à droite. Pas de barre d'export dans l'onglet Édition : tout le partage est dans l'onglet Export (⌘C et ⌘S marchent depuis les deux).
+- **Export toujours en direct** : chaque modification relance l'export en arrière-plan, quel que soit l'onglet affiché, pour qu'en arrivant sur Export la vidéo soit en général déjà prête.
+- **Deux lecteurs** dans `EditorDocument` : `player` (montage, avec clics et annotations) et `exportPlayer` (MP4 prêt). `activePlayer` est celui qui est affiché ; lecture, pause, déplacements et le suivi de la tête de lecture passent par lui. Changer d'onglet ou appuyer sur "Original" passe la main d'un lecteur à l'autre (`switchPlayer`) : même image, lecture continuée si elle était en cours.
+- `ExportModel.onReadyURLChange` : dès qu'un MP4 est prêt (ou ne l'est plus, pendant un nouvel export), il est chargé dans `exportPlayer` à la position courante.
+- **Aperçu du MP4** avec une barre de lecture simple, un badge "MP4 · largeur × hauteur", la progression pendant un export.
+- **Original** : bouton à maintenir (ou ⌥ maintenu, touche dessinée sur le bouton : retour de l'utilisateur, on ne comprenait pas comment s'en servir) : le montage non compressé s'affiche à la même place et à la même taille que le MP4 (annotations en lecture seule), pour repérer d'un coup d'œil ce que la compression abîme. Relâcher revient au MP4. ⌥ est relâché d'office si la fenêtre perd le focus.
+- **Zoom de la vidéo** (retour de l'utilisateur : deux boutons ne suffisaient pas, il veut zoomer librement, au pincement aussi) : − / pourcentage / +, "Ajuster" et "Taille réelle" (100 % = 1 pixel du MP4 = 1 pixel de l'écran, pour juger la lisibilité d'un texte). Boutons et raccourcis par paliers ronds (10, 25, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500, 600, 800 %) : ×1,5 donnait 100, 150, 225, 338 (2e test). Pincement autour du pointeur, le pourcentage suit les doigts (avant : mis à jour seulement à la fin du geste). Changer de taille d'export garde le même point au centre de la vue (proportion du contenu). Défilement à deux doigts, ⌘+ / ⌘− / ⌘0 dans l'onglet Export. Vue `ZoomablePreview` : `NSScrollView` avec loupe native, contenu centré tant qu'il est plus petit que la zone, zoom de 10 % à 800 % (jamais sous l'ajustement ni sous 100 %). L'original est montré au même format, donc réduit comme le MP4.
+- **Confirmation de copie** (retour de l'utilisateur : on ne voyait pas qu'on avait copié avec ⌘C depuis l'onglet Édition) : le bouton reste "Copier", et un message "Vidéo copiée" (sans rien d'autre, 2e test) apparaît 2 s en haut de la vidéo, dans les deux onglets.
+- ⌘1 / ⌘2 lus d'après le code de la touche : en AZERTY, la touche 1 donne "&" (le raccourci ne marchait pas au premier test).
+- Raccourcis de montage (X, ⌫, annuler, zoom de la timeline, Esc) actifs seulement dans l'onglet Édition ; lecture (Espace, flèches, Début / Fin) dans les deux.
+- En passant sur Export, l'outil Tracer est désarmé et l'annotation désélectionnée.
 
 - **Taille** : 100 % / 75 % / 50 %. **Qualité** : Haute / Moyenne / Légère (0,10 / 0,06 / 0,035 bit par pixel et par image). Réglages mémorisés d'un export à l'autre.
+- **Poids de chaque option** sous son nom : pour une taille, avec la qualité choisie, et inversement. Poids réel si la combinaison a déjà été exportée pendant la session (cache), sinon estimation ("≈"), corrigée par le rapport poids réel / estimé du dernier export (l'estimation par le débit surestime souvent les enregistrements d'écran, très statiques).
 - Résumé : dimensions finales (ex. "1920 × 1080 · MP4"), puis **"Estimation : ≈ X Mo"** pendant l'export (débit × durée), remplacé par le **poids réel** une fois le fichier prêt.
 - MP4 H.264 (High) + AAC 128 kb/s stéréo, 30 i/s, optimisé pour le streaming. Les pistes audio gardées sont mixées en une seule piste : couper une seule des deux pistes ne change donc pas le poids, et couper les deux ne fait gagner que ~16 Ko/s (le son pèse très peu face à la vidéo).
 - Vitesse d'export : les images sont composées directement à la taille d'export (pas en pleine résolution puis réduites), et l'encodage se fait sans images B. Le gain est surtout visible à 75 % et 50 %. Limite du H.264 matériel : 4096 × 2304, la taille est réduite automatiquement au-delà (écrans 5K).

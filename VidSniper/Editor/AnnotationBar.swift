@@ -83,11 +83,6 @@ struct AnnotationBar: View {
             .buttonStyle(IconButtonStyle())
             .disabled(document.selectedAnnotationID == nil)
             .help("Delete the selected annotation (⌫)")
-
-            Spacer(minLength: 0)
-
-            // Tous les raccourcis, au survol.
-            ShortcutsHelp()
         }
         .focusable(false)
     }

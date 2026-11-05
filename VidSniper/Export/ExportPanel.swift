@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Panneau d'export de l'éditeur : taille, qualité, poids, et la vidéo prête à glisser ou copier.
-struct ExportBar: View {
+/// Panneau de l'onglet Export : taille et qualité (avec le poids de chaque option), poids du MP4,
+/// et la vidéo prête à glisser ou copier.
+struct ExportPanel: View {
     let export: ExportModel
     let thumbnail: CGImage?
 
@@ -10,14 +11,22 @@ struct ExportBar: View {
             VStack(alignment: .leading, spacing: 6) {
                 optionRow("Size") {
                     ForEach(ExportSize.allCases) { size in
-                        ChoiceChip(title: size.label, isSelected: export.size == size) {
+                        OptionTile(
+                            title: size.label,
+                            weight: export.weight(size: size, quality: export.quality),
+                            isSelected: export.size == size
+                        ) {
                             export.size = size
                         }
                     }
                 }
                 optionRow("Quality") {
                     ForEach(ExportQuality.allCases) { quality in
-                        ChoiceChip(title: quality.label, isSelected: export.quality == quality) {
+                        OptionTile(
+                            title: quality.label,
+                            weight: export.weight(size: export.size, quality: quality),
+                            isSelected: export.quality == quality
+                        ) {
                             export.quality = quality
                         }
                     }
@@ -35,11 +44,11 @@ struct ExportBar: View {
                 Button {
                     export.copyToPasteboard()
                 } label: {
+                    // La confirmation s'affiche au-dessus de la vidéo, dans les deux onglets (CopiedToast).
                     HStack(spacing: 6) {
-                        // Cadre fixe : la coche n'a ni la largeur ni la hauteur de l'icône de copie.
-                        Image(systemName: export.justCopied ? "checkmark" : "doc.on.doc")
+                        Image(systemName: "doc.on.doc")
                             .frame(width: 16, height: 14)
-                        Text(export.justCopied ? "Copied" : "Copy")
+                        Text("Copy")
                     }
                     .frame(minWidth: 96, maxWidth: .infinity, alignment: .leading)
                 }
@@ -118,7 +127,7 @@ struct ExportBar: View {
         }
     }
 
-    private static func format(_ bytes: Int64) -> String {
+    static func format(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
@@ -180,5 +189,46 @@ struct ExportBar: View {
         } else {
             tile
         }
+    }
+}
+
+/// Option de taille ou de qualité, avec le poids qu'aurait la vidéo : réel si ce réglage a déjà été
+/// exporté, sinon estimé (≈).
+private struct OptionTile: View {
+    let title: String
+    let weight: (bytes: Int64, isEstimate: Bool)?
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(isSelected ? Color.white : Theme.textNormal)
+                Text(verbatim: weightText)
+                    .font(.system(size: 10).monospacedDigit())
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.8) : Theme.textMuted)
+            }
+            .frame(minWidth: 70, alignment: .leading)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                    .fill(isSelected ? Theme.accent : Theme.backgroundPrimary)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                    .stroke(isSelected ? Theme.accent : Theme.border, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var weightText: String {
+        guard let weight else { return "–" }
+        let size = ExportPanel.format(weight.bytes)
+        return weight.isEstimate ? "≈ \(size)" : size
     }
 }

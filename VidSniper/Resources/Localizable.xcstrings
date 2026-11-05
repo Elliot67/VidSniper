@@ -11,12 +11,32 @@
         }
       }
     },
+    "1 pixel of the video = 1 pixel of the screen, to check that text stays readable" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 pixel de la vidéo = 1 pixel de l'écran, pour vérifier que le texte reste lisible"
+          }
+        }
+      }
+    },
     "A spotlight has no color" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Un projecteur n'a pas de couleur"
+          }
+        }
+      }
+    },
+    "Actual Size" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille réelle"
           }
         }
       }
@@ -131,6 +151,16 @@
         }
       }
     },
+    "Check the exported video and share it (⌘2)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier la vidéo exportée et la partager (⌘2)"
+          }
+        }
+      }
+    },
     "Choose a video to edit" : {
       "localizations" : {
         "fr" : {
@@ -177,16 +207,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clics"
-          }
-        }
-      }
-    },
-    "Copied" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copiée"
           }
         }
       }
@@ -261,6 +281,16 @@
         }
       }
     },
+    "Couldn't write the MP4." : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écriture du MP4 impossible."
+          }
+        }
+      }
+    },
     "Couldn't write the file." : {
       "localizations" : {
         "fr" : {
@@ -271,12 +301,12 @@
         }
       }
     },
-    "Couldn't write the MP4." : {
+    "Cuts, audio and annotations (⌘1)" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Écriture du MP4 impossible."
+            "value" : "Coupes, audio et annotations (⌘1)"
           }
         }
       }
@@ -397,6 +427,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tracer une annotation : glisser sur la vidéo"
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Édition"
+          }
+        }
+      }
+    },
+    "Edit / Export tab" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onglet Édition / Export"
           }
         }
       }
@@ -577,6 +627,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mettre en évidence les clics dans la vidéo"
+          }
+        }
+      }
+    },
+    "Hold to show the original, before compression (or hold ⌥)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenir pour voir l'original, avant compression (ou maintenir ⌥)"
+          }
+        }
+      }
+    },
+    "Hold ⌥" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenir ⌥"
           }
         }
       }
@@ -807,6 +877,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Optionnel, pour enregistrer ta voix."
+          }
+        }
+      }
+    },
+    "Original" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
           }
         }
       }
@@ -1081,12 +1161,32 @@
         }
       }
     },
+    "Show the original (Export tab)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir l'original (onglet Export)"
+          }
+        }
+      }
+    },
     "Show the whole edit" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher tout le montage"
+          }
+        }
+      }
+    },
+    "Show the whole video (⌘0)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher toute la vidéo (⌘0)"
           }
         }
       }
@@ -1331,6 +1431,16 @@
         }
       }
     },
+    "Video copied" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vidéo copiée"
+          }
+        }
+      }
+    },
     "Yellow" : {
       "localizations" : {
         "fr" : {
@@ -1341,23 +1451,22 @@
         }
       }
     },
-    "yyyy-MM-dd 'at' HH.mm.ss" : {
-      "comment" : "Date format of the recording file name",
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "yyyy-MM-dd 'à' HH.mm.ss"
-          }
-        }
-      }
-    },
     "Zoom around the pointer" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zoomer autour du pointeur"
+          }
+        }
+      }
+    },
+    "Zoom in (⌘+ or pinch)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomer (⌘+ ou pincement)"
           }
         }
       }
@@ -1382,12 +1491,43 @@
         }
       }
     },
+    "Zoom out (⌘− or pinch)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dézoomer (⌘− ou pincement)"
+          }
+        }
+      }
+    },
     "Zoom out (⌘−)" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dézoomer (⌘−)"
+          }
+        }
+      }
+    },
+    "Zoom the video / fit (Export tab)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomer la vidéo / ajuster (onglet Export)"
+          }
+        }
+      }
+    },
+    "yyyy-MM-dd 'at' HH.mm.ss" : {
+      "comment" : "Date format of the recording file name",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "yyyy-MM-dd 'à' HH.mm.ss"
           }
         }
       }

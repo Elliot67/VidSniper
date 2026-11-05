@@ -29,7 +29,16 @@ final class ExportModel {
         }
     }
 
-    private(set) var status: Status = .waiting
+    private(set) var status: Status = .waiting {
+        didSet {
+            let url = readyURL
+            if url != Self.readyURL(of: oldValue) { onReadyURLChange?(url) }
+        }
+    }
+    /// Prévient l'éditeur dès qu'un MP4 est prêt (ou ne l'est plus), pour le charger dans l'onglet Export.
+    @ObservationIgnored var onReadyURLChange: ((URL?) -> Void)?
+    /// Poids réel / poids estimé du dernier export : corrige l'estimation des autres réglages.
+    private var estimateCorrection = 1.0
     private(set) var justCopied = false
     var videoSize: CGSize = .zero
 
@@ -57,6 +66,10 @@ final class ExportModel {
     }
 
     private var cacheKey: String {
+        cacheKey(size: size, quality: quality)
+    }
+
+    private func cacheKey(size: ExportSize, quality: ExportQuality) -> String {
         let volumes = volumes.map { "\($0.trackID):\($0.volume)" }.joined(separator: ",")
         return "\(signature)|\(size.rawValue)|\(quality.rawValue)|\(volumes)"
     }
@@ -70,8 +83,22 @@ final class ExportModel {
     }
 
     var plan: ExportPlan? {
+        plan(size: size, quality: quality)
+    }
+
+    private func plan(size: ExportSize, quality: ExportQuality) -> ExportPlan? {
         guard videoSize != .zero, duration > 0 else { return nil }
         return ExportPlan(sourceSize: videoSize, duration: duration, hasAudio: hasAudio, size: size, quality: quality)
+    }
+
+    /// Poids d'un réglage pour le montage actuel : réel s'il a déjà été exporté pendant la session,
+    /// sinon estimé (corrigé d'après le dernier export réel).
+    func weight(size: ExportSize, quality: ExportQuality) -> (bytes: Int64, isEstimate: Bool)? {
+        if let cached = cache[cacheKey(size: size, quality: quality)] {
+            return (cached.bytes, false)
+        }
+        guard let plan = plan(size: size, quality: quality) else { return nil }
+        return (Int64(Double(plan.estimatedBytes) * estimateCorrection), true)
     }
 
     /// Appelé par l'éditeur à chaque reconstruction du montage.
@@ -157,6 +184,9 @@ final class ExportModel {
                 }
                 let bytes = Int64((try? destination.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
                 cache[key] = (destination, bytes)
+                if plan.estimatedBytes > 0, bytes > 0 {
+                    estimateCorrection = Double(bytes) / Double(plan.estimatedBytes)
+                }
                 status = .ready(url: destination, bytes: bytes)
             } catch {
                 try? FileManager.default.removeItem(at: temporary)
@@ -170,6 +200,10 @@ final class ExportModel {
     // MARK: - Partage
 
     var readyURL: URL? {
+        Self.readyURL(of: status)
+    }
+
+    private static func readyURL(of status: Status) -> URL? {
         if case .ready(let url, _) = status { return url }
         return nil
     }

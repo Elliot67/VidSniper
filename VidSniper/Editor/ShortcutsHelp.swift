@@ -41,6 +41,9 @@ struct ShortcutsHelp: View {
                 Shortcut(keys: String(localized: "Drag ↕"), action: "Scroll (two fingers)"),
             ]),
             Category(title: "Export", shortcuts: [
+                Shortcut(keys: "⌘1 / ⌘2", action: "Edit / Export tab"),
+                Shortcut(keys: String(localized: "Hold ⌥"), action: "Show the original (Export tab)"),
+                Shortcut(keys: "⌘+ / ⌘− / ⌘0", action: "Zoom the video / fit (Export tab)"),
                 Shortcut(keys: "⌘C", action: "Copy the video"),
                 Shortcut(keys: "⌘S", action: "Save a copy"),
             ]),

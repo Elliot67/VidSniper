@@ -69,53 +69,67 @@ struct ToggleChip: View {
         Button {
             isOn.toggle()
         } label: {
-            HStack(spacing: 5) {
-                // Largeur fixe : les variantes "barrées" des icônes sont plus larges, ce qui faisait sauter la pastille.
-                Image(systemName: isOn ? onIcon : offIcon)
-                    .frame(width: 16)
-                Text(title)
-            }
-                .font(.system(size: 12))
-                .foregroundStyle(isOn ? Theme.accent : Theme.textMuted)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                        .fill(isOn ? Theme.accent.opacity(0.12) : Theme.backgroundSecondary)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                        .stroke(isOn ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: 1)
-                )
+            ChipLabel(isOn: isOn, icon: isOn ? onIcon : offIcon, title: title)
                 .opacity(isEnabled ? 1 : 0.5)
         }
         .buttonStyle(.plain)
     }
 }
 
-/// Option d'un choix exclusif (taille, qualité...), en pastille.
-struct ChoiceChip: View {
+/// Apparence d'une pastille d'interrupteur, allumée ou non.
+struct ChipLabel: View {
+    let isOn: Bool
+    let icon: String
     let title: String
-    let isSelected: Bool
-    let action: () -> Void
+    /// Touche à maintenir ou raccourci, affiché comme une touche de clavier après le titre.
+    var shortcut: String?
 
     var body: some View {
-        Button(action: action) {
+        HStack(spacing: 5) {
+            // Largeur fixe : les variantes "barrées" des icônes sont plus larges, ce qui faisait sauter la pastille.
+            Image(systemName: icon)
+                .frame(width: 16)
             Text(title)
-                .font(.system(size: 12))
-                .foregroundStyle(isSelected ? Color.white : Theme.textNormal)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                        .fill(isSelected ? Theme.accent : Theme.backgroundPrimary)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                        .stroke(isSelected ? Theme.accent : Theme.border, lineWidth: 1)
-                )
+            if let shortcut {
+                KeyCap(shortcut)
+            }
         }
-        .buttonStyle(.plain)
+        .font(.system(size: 12))
+        .foregroundStyle(isOn ? Theme.accent : Theme.textMuted)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                .fill(isOn ? Theme.accent.opacity(0.12) : Theme.backgroundSecondary)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cornerRadius)
+                .stroke(isOn ? Theme.accent.opacity(0.5) : Theme.border, lineWidth: 1)
+        )
+    }
+}
+
+/// Touche de clavier dessinée (⌥, ⌘C…), pour montrer un raccourci dans un bouton.
+struct KeyCap: View {
+    let keys: String
+
+    init(_ keys: String) {
+        self.keys = keys
+    }
+
+    var body: some View {
+        Text(verbatim: keys)
+            .font(.system(size: 10, weight: .medium).monospaced())
+            .padding(.horizontal, 4)
+            .frame(minWidth: 16, minHeight: 16)
+            .background(
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Theme.backgroundPrimary)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .stroke(Theme.border, lineWidth: 1)
+            )
     }
 }
 

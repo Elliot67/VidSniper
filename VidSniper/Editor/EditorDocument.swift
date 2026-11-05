@@ -55,7 +55,20 @@ struct AudioEnvelope: Sendable {
 final class EditorDocument {
     let recording: RecordingResult
     let player = AVPlayer()
+    /// Lit le MP4 exporté, dans l'onglet Export.
+    let exportPlayer = AVPlayer()
     let export: ExportModel
+
+    /// Onglet affiché. L'export se refait à chaque modification quel que soit l'onglet : en arrivant
+    /// sur Export, la vidéo est en général déjà prête.
+    private(set) var tab: EditorTab = .edit
+    /// Onglet Export : montre le montage d'origine (bouton "Original" ou ⌥ maintenus) à la place du MP4.
+    private(set) var showsOriginal = false
+    /// Onglet Export : zoom de la vidéo, 1 = taille réelle (1 pixel du MP4 = 1 pixel de l'écran).
+    /// `nil` : ajustée à la zone, au zoom `previewFitZoom`.
+    var previewZoom: Double?
+    /// Zoom qui ajuste la vidéo à la zone, tenu à jour par l'aperçu.
+    var previewFitZoom = 1.0
 
     private(set) var state: EditState
     var selectedSegment: Int?
@@ -139,6 +152,9 @@ final class EditorDocument {
     @ObservationIgnored private let systemAudioGain = AudioGain(1)
     @ObservationIgnored private let microphoneGain = AudioGain(1)
     @ObservationIgnored private var timeObserver: Any?
+    @ObservationIgnored private var exportTimeObserver: Any?
+    /// Fichier chargé dans `exportPlayer`.
+    @ObservationIgnored private var exportItemURL: URL?
     @ObservationIgnored private var endObserver: NSObjectProtocol?
     @ObservationIgnored private var frameRequest = 0
 
@@ -152,6 +168,7 @@ final class EditorDocument {
         asset = AVURLAsset(url: recording.url)
         state = EditState(segments: [], systemAudio: recording.hasSystemAudio, microphone: recording.hasMicrophone)
         balance = UserDefaults.standard.object(forKey: "audioBalance") as? Double ?? Self.defaultBalance
+        export.onReadyURLChange = { [weak self] url in self?.loadExport(url) }
     }
 
     // MARK: - Niveaux audio
@@ -436,21 +453,17 @@ final class EditorDocument {
     func close() {
         export.cancel()
         player.pause()
+        exportPlayer.pause()
         if let timeObserver { player.removeTimeObserver(timeObserver) }
+        if let exportTimeObserver { exportPlayer.removeTimeObserver(exportTimeObserver) }
         if let endObserver { NotificationCenter.default.removeObserver(endObserver) }
         player.replaceCurrentItem(with: nil)
+        exportPlayer.replaceCurrentItem(with: nil)
     }
 
     private func observePlayer() {
-        timeObserver = player.addPeriodicTimeObserver(
-            forInterval: CMTime(value: 1, timescale: 30),
-            queue: .main
-        ) { [weak self] time in
-            MainActor.assumeIsolated {
-                guard let self, self.isPlaying else { return }
-                self.currentTime = min(time.seconds, self.duration)
-            }
-        }
+        timeObserver = observeTime(of: player)
+        exportTimeObserver = observeTime(of: exportPlayer)
         endObserver = NotificationCenter.default.addObserver(
             forName: AVPlayerItem.didPlayToEndTimeNotification,
             object: nil,
@@ -458,7 +471,7 @@ final class EditorDocument {
         ) { [weak self] notification in
             let finishedItem = (notification.object as AnyObject?).map(ObjectIdentifier.init)
             MainActor.assumeIsolated {
-                guard let self, let current = self.player.currentItem,
+                guard let self, let current = self.activePlayer.currentItem,
                       finishedItem == ObjectIdentifier(current)
                 else { return }
                 self.isPlaying = false
@@ -467,15 +480,29 @@ final class EditorDocument {
         }
     }
 
+    /// Seul le lecteur affiché fait avancer la tête de lecture.
+    private func observeTime(of observed: AVPlayer) -> Any {
+        observed.addPeriodicTimeObserver(
+            forInterval: CMTime(value: 1, timescale: 30),
+            queue: .main
+        ) { [weak self, weak observed] time in
+            MainActor.assumeIsolated {
+                guard let self, self.isPlaying, observed === self.activePlayer else { return }
+                self.currentTime = min(time.seconds, self.duration)
+            }
+        }
+    }
+
     // MARK: - Lecture
 
     func togglePlay() {
         if isPlaying {
-            player.pause()
+            activePlayer.pause()
             isPlaying = false
         } else {
+            guard activePlayer.currentItem != nil else { return }
             if currentTime >= duration - Self.frameDuration { seek(to: 0) }
-            player.play()
+            activePlayer.play()
             isPlaying = true
         }
     }
@@ -483,7 +510,7 @@ final class EditorDocument {
     func seek(to time: Double) {
         let clamped = min(max(time, 0), duration)
         currentTime = clamped
-        player.seek(to: cmTime(clamped), toleranceBefore: .zero, toleranceAfter: .zero)
+        activePlayer.seek(to: cmTime(clamped), toleranceBefore: .zero, toleranceAfter: .zero)
     }
 
     func step(by seconds: Double) {
@@ -666,6 +693,12 @@ final class EditorDocument {
     }
 
     /// Esc : désarme l'outil, puis désélectionne.
+    /// Désarme l'outil et désélectionne (passage à l'onglet Export).
+    func stopAnnotationEditing() {
+        isDrawingAnnotation = false
+        selectedAnnotationID = nil
+    }
+
     func cancelAnnotationInteraction() {
         if isDrawingAnnotation {
             isDrawingAnnotation = false
@@ -935,5 +968,100 @@ final class EditorDocument {
 
     private func cmTime(_ seconds: Double) -> CMTime {
         CMTime(seconds: seconds, preferredTimescale: Self.timescale)
+    }
+}
+
+// MARK: - Onglets
+
+enum EditorTab {
+    case edit, export
+}
+
+/// Onglets Édition / Export : deux lecteurs (montage et MP4 exporté), un seul affiché à la fois.
+/// Changer de lecteur garde la position et l'état de lecture.
+extension EditorDocument {
+    /// Le MP4 n'est montré que dans l'onglet Export, hors appui sur "Original".
+    var isShowingExport: Bool {
+        tab == .export && !showsOriginal
+    }
+
+    var activePlayer: AVPlayer {
+        isShowingExport ? exportPlayer : player
+    }
+
+    func selectTab(_ newTab: EditorTab) {
+        guard newTab != tab else { return }
+        if newTab == .export {
+            // Ni tracé en cours ni poignées de sélection sur la vidéo d'origine.
+            stopAnnotationEditing()
+        }
+        switchPlayer {
+            tab = newTab
+            showsOriginal = false
+        }
+    }
+
+    /// Zoom affiché, ajusté ou choisi.
+    var displayedPreviewZoom: Double {
+        previewZoom ?? previewFitZoom
+    }
+
+    static let previewZoomRange = 0.1...8.0
+
+    /// Paliers des boutons et de ⌘+ / ⌘− : des valeurs rondes, plutôt que ×1,5 (100, 150, 225, 338…).
+    static let previewZoomSteps: [Double] = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 6, 8]
+
+    /// Palier suivant (`zoomIn`) ou précédent à partir du zoom affiché, même s'il est entre deux paliers.
+    func stepPreviewZoom(zoomIn: Bool) {
+        let current = displayedPreviewZoom
+        let next = zoomIn
+            ? Self.previewZoomSteps.first { $0 > current + 0.005 }
+            : Self.previewZoomSteps.last { $0 < current - 0.005 }
+        if let next { setPreviewZoom(next) }
+    }
+
+    /// Zoom choisi (boutons, raccourcis, pincement) : on ne descend pas sous l'ajustement ni sous la taille réelle.
+    func setPreviewZoom(_ zoom: Double) {
+        let lowest = max(min(previewFitZoom, 1), Self.previewZoomRange.lowerBound)
+        let clamped = min(max(zoom, lowest), Self.previewZoomRange.upperBound)
+        previewZoom = abs(clamped - previewFitZoom) < 0.005 ? nil : clamped
+    }
+
+    func setShowsOriginal(_ shown: Bool) {
+        guard tab == .export, shown != showsOriginal else { return }
+        switchPlayer { showsOriginal = shown }
+    }
+
+    /// Change le lecteur affiché : le nouveau reprend à la même image, et continue la lecture si besoin.
+    func switchPlayer(_ change: () -> Void) {
+        let previous = activePlayer
+        let wasPlaying = isPlaying
+        if wasPlaying {
+            currentTime = min(previous.currentTime().seconds, duration)
+        }
+        change()
+        let next = activePlayer
+        guard next !== previous else { return }
+        previous.pause()
+        next.seek(to: cmTime(currentTime), toleranceBefore: .zero, toleranceAfter: .zero)
+        if wasPlaying, next.currentItem != nil {
+            next.play()
+        } else {
+            isPlaying = false
+        }
+    }
+
+    /// Nouveau MP4 prêt (ou plus aucun, pendant un nouvel export) : chargé tout de suite, quel que soit l'onglet.
+    func loadExport(_ url: URL?) {
+        guard url != exportItemURL else { return }
+        exportItemURL = url
+        if isShowingExport, isPlaying {
+            exportPlayer.pause()
+            isPlaying = false
+        }
+        exportPlayer.replaceCurrentItem(with: url.map { AVPlayerItem(url: $0) })
+        if url != nil {
+            exportPlayer.seek(to: cmTime(currentTime), toleranceBefore: .zero, toleranceAfter: .zero)
+        }
     }
 }
