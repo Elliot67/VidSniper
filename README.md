@@ -1,7 +1,7 @@
 <p align="center"><img width="150" src="./VidSniper/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png" alt="VidSniper"></p>
 
 <h1 align="center">VidSniper</h1>
-<p align="center">Record part of your screen, trim it, and drop the video into Slack, Jira or an email</p>
+<p align="center">Record part of your screen, trim it, and drop the video anywhere</p>
 
 A small native macOS app to share a quick screen recording without going through the Finder.
 
@@ -35,3 +35,5 @@ Updates: `brew upgrade --cask vidsniper`.
 ### First launch
 
 Allow **Screen Recording**, and the **Microphone** if you want your voice in the video.
+
+> **Disclaimer**: this app was vibe coded with an AI assistant. It's still a real, working app, used daily and covered by automated tests.
