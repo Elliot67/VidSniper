@@ -16,7 +16,6 @@ Free distribution, without the App Store.
 - **No certificate in CI**: macOS asks for the screen and microphone permissions again after each update installed from a release (and once when switching between `install.sh` and a release). To add the certificate later: export it as a `.p12` into the repository secrets and import it into a temporary keychain before the build.
 - **By hand**: `./scripts/release.sh` runs the tests, builds in Release (Apple Silicon + Intel), checks the signature, zips the app with `ditto` into `dist/VidSniper-<version>.zip` (ignored by git) and updates the Homebrew cask. `--publish` also creates the GitHub release (`gh`) and pushes the cask. Version: `CFBundleShortVersionString` in `project.yml`, to increase before each release.
 - The repository (`Elliot67/VidSniper`) must be **public** for the download and the Homebrew tap to work (`REPO` variable of the script, URLs in the cask and the README).
-
 - **Older toolchains**: the code must also build with older Xcode versions, since the CI one can lag behind the development one. Known differences: `MTAudioProcessingTapCreate` returns the tap through an `Unmanaged` on the macOS 15 SDK (`AudioGain.swift` has an overload for each), and the Swift 6.1 compiler needs `@preconcurrency` on the AVFoundation and ScreenCaptureKit imports that send non-`Sendable` values.
 
 ## Homebrew
