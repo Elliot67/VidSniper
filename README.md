@@ -1,6 +1,9 @@
-# VidSniper
+<p align="center"><img width="150" src="./VidSniper/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png" alt="VidSniper"></p>
 
-Record part of your screen, trim it, and drop the video into Slack, Jira or an email. A small native macOS app.
+<h1 align="center">VidSniper</h1>
+<p align="center">Record part of your screen, trim it, and drop the video into Slack, Jira or an email</p>
+
+A small native macOS app to share a quick screen recording without going through the Finder.
 
 - **Record**: press ⇧⌘8, select an area (or the whole screen), and record with system audio and your microphone.
 - **Edit**: cut, balance the audio, highlight clicks, add annotations.
