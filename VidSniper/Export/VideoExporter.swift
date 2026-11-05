@@ -107,6 +107,10 @@ private final class ExportJob: @unchecked Sendable {
         }
 
         VideoColor.apply(to: videoComposition)
+        // Cadence fixe à 30 i/s. Les constructeurs d'Apple calent sinon les images sur celles de la piste source
+        // (60 i/s, variable) et `frameDuration` était ignorée : les exports pesaient près du double de l'estimation.
+        videoComposition.sourceTrackIDForFrameTiming = kCMPersistentTrackID_Invalid
+        videoComposition.frameDuration = CMTime(value: 1, timescale: CMTimeScale(ExportPlan.frameRate))
 
         videoOutput = AVAssetReaderVideoCompositionOutput(videoTracks: videoTracks, videoSettings: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,

@@ -411,6 +411,26 @@ final class EditorDocument {
         reader.add(output)
         guard reader.startReading() else { return ([], nil) }
 
+        // La lecture bloque à chaque échantillon : elle tourne sur sa propre file, pas sur les threads des tâches
+        // Swift, qui sont en nombre limité. Plusieurs analyses à la fois (plusieurs vidéos ouvertes) les occupaient
+        // tous et plus rien n'avançait.
+        let job = UncheckedSendable((reader, output))
+        return await withCheckedContinuation { continuation in
+            analysisQueue.async {
+                continuation.resume(returning: measure(job.value.1, sampleRate: sampleRate))
+                _ = job.value.0
+            }
+        }
+    }
+
+    nonisolated private static let analysisQueue = DispatchQueue(
+        label: "VidSniper.audioAnalysis", qos: .utility, attributes: .concurrent
+    )
+
+    nonisolated private static func measure(
+        _ output: AVAssetReaderTrackOutput,
+        sampleRate: Int
+    ) -> (decibels: [Float], loudness: Double?) {
         let samplesPerBucket = Int(Double(sampleRate) / AudioEnvelope.rate)
         let activityThreshold = -45.0
         var decibels: [Float] = []
@@ -451,7 +471,7 @@ final class EditorDocument {
     }
 
     func close() {
-        export.cancel()
+        export.close()
         player.pause()
         exportPlayer.pause()
         if let timeObserver { player.removeTimeObserver(timeObserver) }

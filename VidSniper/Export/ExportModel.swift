@@ -53,6 +53,7 @@ final class ExportModel {
     @ObservationIgnored private var signature = ""
     @ObservationIgnored private var exportTask: Task<Void, Never>?
     @ObservationIgnored private var copiedTask: Task<Void, Never>?
+    @ObservationIgnored private var isClosed = false
     /// Le nom du fichier est celui que verront les destinataires (Slack, Jira…).
     @ObservationIgnored private let fileName: String
     /// Exports déjà faits pendant la session : revenir à un réglage déjà essayé est instantané.
@@ -159,14 +160,17 @@ final class ExportModel {
         scheduleExport()
     }
 
-    func cancel() {
+    /// Éditeur fermé : l'export en cours est abandonné, et plus aucun n'est lancé (l'analyse du son, qui se
+    /// termine parfois après la fermeture, relançait sinon un export que personne n'annulait).
+    func close() {
+        isClosed = true
         exportTask?.cancel()
         exportTask = nil
     }
 
     private func scheduleExport() {
         exportTask?.cancel()
-        guard let composition, let plan else { return }
+        guard !isClosed, let composition, let plan else { return }
         justCopied = false
 
         let key = cacheKey
