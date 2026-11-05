@@ -1,8 +1,8 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import AppKit
 import CoreGraphics
 import Observation
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 
 /// État des permissions système nécessaires : enregistrement d'écran et micro.
 @MainActor

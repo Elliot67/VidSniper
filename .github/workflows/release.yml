@@ -14,9 +14,17 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-15
+    # Image macOS la plus récente : ses Xcode sont les plus proches de celui du développement.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+
+      # Le Xcode par défaut de l'image est souvent en retard : on prend le plus récent installé (hors bêta).
+      - name: Xcode
+        run: |
+          xcode=$(ls -d /Applications/Xcode_*.app | grep -iv beta | sort -V | tail -1)
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
 
       - name: Outils
         run: brew install xcodegen

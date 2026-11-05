@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import Observation
 
 /// Un morceau conservé de la vidéo source. Jusqu'où il peut être rallongé dépend de ses voisins du moment

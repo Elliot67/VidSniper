@@ -97,7 +97,7 @@ struct ZoomablePreview<Content: View>: NSViewRepresentable {
                     centerToRestore = CGPoint(x: visible.midX / previousSize.width, y: visible.midY / previousSize.height)
                     // Même taille à l'écran : la vidéo en Retina, deux fois plus grande, prend deux fois moins de zoom.
                     if let zoom {
-                        let rescaled = zoom * previousSize.width / contentSize.width
+                        let rescaled = zoom * Double(previousSize.width / contentSize.width)
                         pendingRescale = (zoom, rescaled)
                         self.zoom = rescaled
                         let report = onZoomRescaled

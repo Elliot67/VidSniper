@@ -99,11 +99,35 @@ private func makeGainTap(_ gain: AudioGain) -> MTAudioProcessingTap? {
         }
     )
 
-    var tap: MTAudioProcessingTap?
-    let status = MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PostEffects, &tap)
+    let (status, tap) = createTap(MTAudioProcessingTapCreate, callbacks: &callbacks)
     if status != noErr {
         Unmanaged.passUnretained(gain).release()
         return nil
     }
     return tap
+}
+
+// `MTAudioProcessingTapCreate` rend le tap directement (SDK récents) ou dans un `Unmanaged` (SDK de macOS 15,
+// celui de la GitHub Action). Le compilateur choisit la variante qui correspond au SDK utilisé.
+private typealias TapCreate<Output> = (
+    CFAllocator?, UnsafePointer<MTAudioProcessingTapCallbacks>, MTAudioProcessingTapCreationFlags,
+    UnsafeMutablePointer<Output?>
+) -> OSStatus
+
+private func createTap(
+    _ create: TapCreate<MTAudioProcessingTap>,
+    callbacks: inout MTAudioProcessingTapCallbacks
+) -> (OSStatus, MTAudioProcessingTap?) {
+    var tap: MTAudioProcessingTap?
+    let status = create(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PostEffects, &tap)
+    return (status, tap)
+}
+
+private func createTap(
+    _ create: TapCreate<Unmanaged<MTAudioProcessingTap>>,
+    callbacks: inout MTAudioProcessingTapCallbacks
+) -> (OSStatus, MTAudioProcessingTap?) {
+    var tap: Unmanaged<MTAudioProcessingTap>?
+    let status = create(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PostEffects, &tap)
+    return (status, tap?.takeRetainedValue())
 }
