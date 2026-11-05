@@ -11,15 +11,15 @@ cask "vidsniper" do
   desc "Record part of the screen, trim it and share the video"
   homepage "https://github.com/Elliot67/VidSniper"
 
-  depends_on macos: ">= :sequoia"
+  depends_on macos: :sequoia
 
   app "VidSniper.app"
 
   # L'app n'est pas notarisée (pas de compte Apple Developer payant) : on retire la quarantaine
-  # pour que macOS ne bloque pas le premier lancement.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/VidSniper.app"]
+  # pour que macOS ne bloque pas le premier lancement. Étapes déclaratives (Homebrew 7 et plus) :
+  # {{appdir}} est remplacé par le dossier d'installation au moment de l'installation.
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/VidSniper.app"]
   end
 
   zap trash: [
