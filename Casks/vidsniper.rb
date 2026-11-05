@@ -4,7 +4,7 @@
 #   brew install --cask vidsniper
 cask "vidsniper" do
   version "0.1.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 "f8713a598f444d62d9f05754fb05f92ec78d093e7eda131576b75f743274701d"
 
   url "https://github.com/Elliot67/VidSniper/releases/download/v#{version}/VidSniper-#{version}.zip"
   name "VidSniper"
