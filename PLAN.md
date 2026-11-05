@@ -21,7 +21,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 8 | Onglets Édition / Export : aperçu du MP4, bouton Original, zoom, poids de chaque option, confirmation de copie | Fait |
 | 9 | Export : définition Retina / Écran, 5 niveaux de compression, clé toutes les 10 s, plancher 200 kb/s | Fait |
 | 10 | ~~Courbe de qualité~~ (fidélité de chaque niveau, mesurée sur les passages qui bougent le plus) | Abandonné : trop lent, ne dit pas si le texte reste lisible (décision de l'utilisateur) |
-| 11 | **À faire ensuite** : au début de l'enregistrement, le contour de la zone apparaît avec une animation (bordures qui rentrent dans le cadre, léger zoom), et il se retrouve au tout début de chaque vidéo. Supprimer l'animation et le zoom : le contour doit être là, immobile, dès la première image | À faire (demande de l'utilisateur, après la courbe de qualité) |
+| 11 | Contour de la zone sans animation d'apparition (il se retrouvait au début de chaque vidéo) | Fait |
 | - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
 ### Import de vidéo (phase 5)
@@ -127,6 +127,7 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
   - Poignée violette à quatre flèches au-dessus du coin haut gauche du cadre (à l'intérieur si la zone touche le haut de l'écran), masquée en plein écran.
   - Seule la position change (même taille, même écran), via `SCStream.updateConfiguration`, sans coupure. Marche pendant l'enregistrement et en pause.
   - La mini barre suit la zone en gardant sa position relative.
+  - **Apparition instantanée** du contour, de la poignée et de la mini barre (`animationBehavior = .none`) : l'animation d'ouverture de macOS (léger zoom, bordures qui rentrent dans le cadre) est dessinée par le système, hors du filtre qui exclut les fenêtres de l'app, et se retrouvait au tout début de chaque vidéo (retour de l'utilisateur). Même cause que le voile de la sélection.
   - Curseur : flèche. La main ouverte au survol clignotait avec la flèche (l'app est en arrière-plan pendant l'enregistrement et macOS remet la flèche à chaque mouvement) ; la propriété privée `SetsCursorInBackground` n'a pas suffi. Choix de l'utilisateur : la flèche si la main n'est pas fiable.
 - Fichiers dans `~/Library/Caches/VidSniper/Recordings/`, purgés au lancement au-delà de 24 h.
 

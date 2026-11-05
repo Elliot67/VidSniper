@@ -127,6 +127,9 @@ final class RecordingBarController {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        // Apparition instantanée : l'animation d'ouverture (léger zoom, bordures qui rentrent) est dessinée par
+        // le système, hors du filtre qui exclut nos fenêtres, et se retrouvait au début de chaque vidéo.
+        panel.animationBehavior = .none
         return panel
     }
 
