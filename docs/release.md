@@ -21,7 +21,7 @@ Free distribution, without the App Store.
 ## Homebrew
 
 - The tap lives **in the app's repository** (`Casks/` folder at the root, cask `Casks/vidsniper.rb`). Install with `brew tap elliot67/vidsniper https://github.com/Elliot67/VidSniper`, `brew trust elliot67/vidsniper` (recent Homebrew versions refuse to load casks from a third-party tap until it is trusted), then `brew install --cask vidsniper`.
-- The cask removes the quarantine after installing (`postflight`), so the first launch isn't blocked.
+- The cask removes the quarantine after installing (`postflight_steps` with a `run` step and the `{{appdir}}` token, Homebrew 7 or later; the older `postflight` block is deprecated), so the first launch isn't blocked.
 - The official Homebrew repository isn't an option: it requires notarized apps.
 
 ## Icon
