@@ -36,4 +36,4 @@ Updates: `brew upgrade --cask vidsniper`.
 
 Allow **Screen Recording**, and the **Microphone** if you want your voice in the video.
 
-> **Disclaimer**: this app was vibe coded with an AI assistant. It's still a real, working app, used daily and covered by automated tests.
+> **Disclaimer**: vibe coded, but a real working app.
