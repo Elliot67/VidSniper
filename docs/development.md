@@ -14,6 +14,29 @@ xcodebuild             # debug build in build/Debug/
 - **Installing**: `./scripts/install.sh` builds in Release, replaces `/Applications/VidSniper.app` and launches it. Same signature as the debug build, so permissions stay granted. It then **deletes the build copies** (`build/Debug` and the Release build) after unregistering them from Launch Services: only one VidSniper on the Mac (no conflict on the global shortcut, no duplicate in Spotlight).
 - To publish a release, see [release.md](release.md).
 
+## Removing the app
+
+Only one VidSniper should be installed at a time (the global shortcut can only belong to one). To switch between a local build and the Homebrew version, remove the current one first:
+
+```sh
+# App installed by ./scripts/install.sh (or by hand)
+pkill -x VidSniper; rm -rf /Applications/VidSniper.app
+
+# App installed with Homebrew
+brew uninstall --cask vidsniper
+# ...or replace it in place
+brew install --cask --force vidsniper
+
+# Also remove caches and settings (shortcut, compression, balance…)
+brew uninstall --zap --cask vidsniper
+
+# Reset the screen recording and microphone permissions
+tccutil reset ScreenCapture com.elintz.VidSniper
+tccutil reset Microphone com.elintz.VidSniper
+```
+
+A local build and a release don't have the same signature: macOS asks for the screen and microphone permissions again after switching. If "Launch at login" was on, turn it off and on again from the newly installed app.
+
 ## Working in the Claude Code sandbox
 
 - `xcodegen` and `xcodebuild` only work in the sandbox when **run without arguments**.
