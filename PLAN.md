@@ -22,7 +22,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 9 | Export : définition Retina / Écran, 5 niveaux de compression, clé toutes les 10 s, plancher 200 kb/s | Fait |
 | 10 | ~~Courbe de qualité~~ (fidélité de chaque niveau, mesurée sur les passages qui bougent le plus) | Abandonné : trop lent, ne dit pas si le texte reste lisible (décision de l'utilisateur) |
 | 11 | Contour de la zone sans animation d'apparition (il se retrouvait au début de chaque vidéo) | Fait |
-| 12 | Tests automatisés : unitaires, export réel, traductions (`./scripts/test.sh`, lancé avant chaque release) | Fait, à lancer par l'utilisateur |
+| 12 | Tests automatisés : unitaires, export réel, traductions (`./scripts/test.sh`, lancé avant chaque release) | Fait (28 tests, ~2 s) |
 | - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
 ### Import de vidéo (phase 5)
