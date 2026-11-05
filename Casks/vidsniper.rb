@@ -8,7 +8,7 @@ cask "vidsniper" do
 
   url "https://github.com/Elliot67/VidSniper/releases/download/v#{version}/VidSniper-#{version}.zip"
   name "VidSniper"
-  desc "Enregistre une zone de l'écran, coupe et partage la vidéo"
+  desc "Record part of the screen, trim it and share the video"
   homepage "https://github.com/Elliot67/VidSniper"
 
   depends_on macos: ">= :sequoia"

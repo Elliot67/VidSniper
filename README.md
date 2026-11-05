@@ -1,57 +1,34 @@
 # VidSniper
 
-App macOS pour enregistrer rapidement une zone de l'écran, faire quelques retouches et partager la vidéo (Slack, Jira…) sans passer par le Finder.
+Record part of your screen, trim it, and drop the video into Slack, Jira or an email. A small native macOS app.
 
-- Raccourci global (⇧⌘8 par défaut) : sélection d'une zone ou de l'écran entier, puis enregistrement avec le son système et le micro.
-- Éditeur : coupes, pistes audio équilibrées automatiquement, mise en évidence des clics, annotations (cadre, projecteur).
-- Export MP4 léger en arrière-plan, à glisser ou copier (⌘C) directement dans Slack, Jira, un mail…
-- Import d'une vidéo existante pour l'éditer de la même façon.
+- **Record**: press ⇧⌘8, select an area (or the whole screen), and record with system audio and your microphone.
+- **Edit**: cut, balance the audio, highlight clicks, add annotations.
+- **Share**: a light MP4 is ready in the background, to drag or copy (⌘C) anywhere.
 
-Nécessite **macOS 15 (Sequoia)** ou plus récent.
+Requires **macOS 15 (Sequoia)** or later.
 
-## Installer
+## Install
 
-### Téléchargement
+There are two ways to install VidSniper.
 
-1. Télécharger `VidSniper-<version>.zip` depuis la [dernière Release](https://github.com/Elliot67/VidSniper/releases/latest).
-2. Dézipper et glisser `VidSniper.app` dans **Applications**.
-3. **Premier lancement** : l'app n'est pas notarisée par Apple (pas de compte développeur payant), macOS la bloque une fois. Au choix :
-   - ouvrir l'app, puis **Réglages Système > Confidentialité et sécurité > "Ouvrir quand même"** (tout en bas) ;
-   - ou, dans le Terminal : `xattr -dr com.apple.quarantine /Applications/VidSniper.app`.
-
-### Homebrew
+### Option 1: Homebrew (recommended)
 
 ```sh
 brew tap elliot67/vidsniper https://github.com/Elliot67/VidSniper
 brew install --cask vidsniper
 ```
 
-Le blocage du premier lancement est levé automatiquement. Mises à jour : `brew upgrade --cask vidsniper`.
+Updates: `brew upgrade --cask vidsniper`.
 
-### Au premier lancement
+### Option 2: Download
 
-- Autoriser **l'enregistrement de l'écran** (obligatoire) et le **micro** (optionnel) depuis la fenêtre de l'app.
-- Optionnel : activer **"Lancer à l'ouverture de session"** pour que le raccourci marche sans ouvrir l'app.
+1. Download `VidSniper-<version>.zip` from the [latest release](https://github.com/Elliot67/VidSniper/releases/latest).
+2. Unzip it and move `VidSniper.app` to **Applications**.
+3. The app isn't notarized, so macOS blocks the first launch. Either:
+   - open **System Settings > Privacy & Security** and click **Open Anyway**,
+   - or run `xattr -dr com.apple.quarantine /Applications/VidSniper.app`.
 
-## Développement
+### First launch
 
-Prérequis : Xcode, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`), un certificat "Apple Development" (compte Apple gratuit). Pour compiler avec un autre compte, remplacer `DEVELOPMENT_TEAM` et `bundleIdPrefix` dans `project.yml`.
-
-```sh
-xcodegen                    # génère VidSniper.xcodeproj
-xcodebuild                  # build Debug dans build/Debug/
-./scripts/install.sh        # build Release, installe dans /Applications, supprime la version de dev
-./scripts/test.sh           # tous les tests (unitaires, export réel, traductions) ; demande ffmpeg
-./scripts/release.sh        # lance les tests, prépare dist/VidSniper-<version>.zip et la recette Homebrew
-./scripts/release.sh --publish   # publie la Release GitHub et pousse la recette
-```
-
-Tests : `./scripts/test.sh` (ou ⌘U dans Xcode pour les seuls tests unitaires, après `./scripts/make-fixtures.sh`). Les vidéos de test sont générées par ffmpeg (`brew install ffmpeg`) dans `build/fixtures` ; un vrai enregistrement de référence peut être déposé dans `VidSniperTests/Fixtures/reference.mov`. La GitHub Action ne lance pas les tests : les lancer avant de pousser un tag.
-
-Release automatique : pousser un tag (`git tag v0.2.0 && git push origin v0.2.0`), la GitHub Action `.github/workflows/release.yml` compile, publie la Release et met à jour la recette Homebrew.
-
-Le fonctionnement détaillé et les choix techniques sont dans [PLAN.md](PLAN.md).
-
-## Licence
-
-[AGPL-3.0](LICENSE).
+Allow **Screen Recording**, and the **Microphone** if you want your voice in the video.
