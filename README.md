@@ -19,6 +19,7 @@ There are two ways to install VidSniper.
 
 ```sh
 brew tap elliot67/vidsniper https://github.com/Elliot67/VidSniper
+brew trust elliot67/vidsniper
 brew install --cask vidsniper
 ```
 
