@@ -30,6 +30,10 @@ brew install --cask --force vidsniper
 # Also remove caches and settings (shortcut, compression, balance…)
 brew uninstall --zap --cask vidsniper
 
+# Remove the tap and its trust (after uninstalling the cask, which untap requires)
+brew untrust elliot67/vidsniper
+brew untap elliot67/vidsniper
+
 # Reset the screen recording and microphone permissions
 tccutil reset ScreenCapture com.elintz.VidSniper
 tccutil reset Microphone com.elintz.VidSniper
