@@ -13,7 +13,7 @@ Nécessite **macOS 15 (Sequoia)** ou plus récent.
 
 ### Téléchargement
 
-1. Télécharger `VidSniper-<version>.zip` depuis la [dernière Release](https://github.com/Elliot67/vid-sniper/releases/latest).
+1. Télécharger `VidSniper-<version>.zip` depuis la [dernière Release](https://github.com/Elliot67/VidSniper/releases/latest).
 2. Dézipper et glisser `VidSniper.app` dans **Applications**.
 3. **Premier lancement** : l'app n'est pas notarisée par Apple (pas de compte développeur payant), macOS la bloque une fois. Au choix :
    - ouvrir l'app, puis **Réglages Système > Confidentialité et sécurité > "Ouvrir quand même"** (tout en bas) ;
@@ -22,7 +22,7 @@ Nécessite **macOS 15 (Sequoia)** ou plus récent.
 ### Homebrew
 
 ```sh
-brew tap elliot67/vidsniper https://github.com/Elliot67/vid-sniper
+brew tap elliot67/vidsniper https://github.com/Elliot67/VidSniper
 brew install --cask vidsniper
 ```
 
@@ -51,3 +51,7 @@ Tests : `./scripts/test.sh` (ou ⌘U dans Xcode pour les seuls tests unitaires, 
 Release automatique : pousser un tag (`git tag v0.2.0 && git push origin v0.2.0`), la GitHub Action `.github/workflows/release.yml` compile, publie la Release et met à jour la recette Homebrew.
 
 Le fonctionnement détaillé et les choix techniques sont dans [PLAN.md](PLAN.md).
+
+## Licence
+
+[AGPL-3.0](LICENSE).

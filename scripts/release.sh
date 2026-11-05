@@ -16,7 +16,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-repo="${REPO:-Elliot67/vid-sniper}"
+repo="${REPO:-Elliot67/VidSniper}"
 publish=false
 [[ "${1:-}" == "--publish" ]] && publish=true
 
