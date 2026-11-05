@@ -23,6 +23,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pendingURLs: [URL] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Hôte des tests : ni fenêtre, ni raccourci global, ni demande d'autorisation.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         RecordingStore.purgeOldRecordings()
         let coordinator = AppCoordinator()
         // Lancée à l'ouverture de session : on reste discret, seul le raccourci est actif.

@@ -22,6 +22,7 @@ App macOS pour enregistrer rapidement une zone de l'écran, faire 2-3 retouches 
 | 9 | Export : définition Retina / Écran, 5 niveaux de compression, clé toutes les 10 s, plancher 200 kb/s | Fait |
 | 10 | ~~Courbe de qualité~~ (fidélité de chaque niveau, mesurée sur les passages qui bougent le plus) | Abandonné : trop lent, ne dit pas si le texte reste lisible (décision de l'utilisateur) |
 | 11 | Contour de la zone sans animation d'apparition (il se retrouvait au début de chaque vidéo) | Fait |
+| 12 | Tests automatisés : unitaires, export réel, traductions (`./scripts/test.sh`, lancé avant chaque release) | Fait, à lancer par l'utilisateur |
 | - | ~~Remplacer une piste audio par un fichier~~ | Abandonné (pas nécessaire) |
 
 ### Import de vidéo (phase 5)
@@ -42,11 +43,24 @@ Raccourci global (⌘⇧8) → sélection d'une zone → enregistrement avec min
 
 - **Swift 6 + SwiftUI**, AppKit pour les fenêtres spéciales (calque de sélection, mini barre, poignée).
 - **macOS 15 minimum** (dev sur macOS 26).
-- **ScreenCaptureKit** pour la capture, **AVFoundation** pour le montage et l'export. Pas de ffmpeg.
+- **ScreenCaptureKit** pour la capture, **AVFoundation** pour le montage et l'export. Pas de ffmpeg dans l'app (seulement pour générer les vidéos de test).
 - **Raccourci global via l'API Carbon** (`RegisterEventHotKey`) : pas de dépendance, pas de permission Accessibilité. Un écran de réglage du raccourci pourra venir plus tard.
 - **XcodeGen** : `project.yml` versionné, le `.xcodeproj` est généré et ignoré par git.
 - App dans le Dock, sans icône dans la barre des menus, sans App Sandbox (usage perso).
 - Signature "Apple Development", team `T9WD2H73Y6`, hardened runtime avec l'entitlement micro. Une signature stable évite que macOS redemande la permission d'écran à chaque build.
+
+### Tests (demande de l'utilisateur : éviter les régressions)
+
+- `./scripts/test.sh` : génère les vidéos de test, lance tous les tests, puis vérifie les traductions. Lancé aussi par `release.sh` avant chaque version (sauf dans la GitHub Action, `CI` défini, ou avec `SKIP_TESTS=1`). **Pas de tests sur GitHub** (décision de l'utilisateur).
+- **Swift Testing**, cible `VidSniperTests` (app hôte ; au lancement par les tests, l'app n'ouvre ni fenêtre ni raccourci).
+  - **Unitaires** : calculs d'export (Retina / Écran, dimensions paires, limite 5K, débits décroissants et distincts même sur une petite zone, plancher, poids estimé), montage sur la vidéo de test (couper, coupe trop près d'un bord, supprimer, annuler / rétablir, dernier segment non supprimable, rallonger pour récupérer un voisin supprimé, rognage bloqué par le segment suivant, pistes audio, clics recalés), paliers du zoom de l'aperçu, format du temps.
+  - **Intégration** (export réel, encodeur de macOS ; activés par `VIDSNIPER_INTEGRATION=1`, que `test.sh` transmet via `TEST_RUNNER_`) : dimensions, durée, 30 i/s, son mixé en une piste, étiquettes de couleur BT.709 / sRGB, **mêmes couleurs que la source** (image réduite comparée canal par canal), niveaux plus légers = fichiers plus légers, vidéo importée minimale, vrai enregistrement de référence.
+- **Vidéos de test** : générées par ffmpeg (`scripts/make-fixtures.sh`, ~1 s) dans `build/fixtures`, non versionnées : `recording.mov` (comme un enregistrement : HEVC 1280 × 720, 60 i/s, 3 s, mire SMPTE étiquetée comme l'app, compteur d'images, deux pistes audio 440 / 880 Hz) et `imported.mp4` (H.264 sans étiquette, une piste ; contrôles minimum sur les vidéos importées, l'app vise surtout ses propres enregistrements). Plus un **vrai enregistrement de référence** versionné, fait par l'utilisateur : `VidSniperTests/Fixtures/reference.mov`.
+- **Traductions** : `scripts/check-translations.py` compare les textes relevés par le compilateur au catalogue (traduction française manquante ou inutilisée = échec).
+- Plancher de 200 kb/s : sur une petite zone (sous ~870 × 550), Légère et Très légère donnent le même fichier (constaté par les tests, laissé tel quel).
+- Écartés : tests par captures d'écran (fragiles à chaque mise à jour de macOS), tests d'interface pilotés (lents, bloqués par les autorisations), vidéos de test externes (Mediabunny, Chromium : surtout des cas de conteneurs gérés par AVFoundation, licence des images incertaine).
+- **Bugs trouvés par les premiers tests** : (0) **l'export restait à 60 i/s** (cadence de la source) : les constructeurs de composition d'Apple remplissent `sourceTrackIDForFrameTiming`, qui prime sur `frameDuration` ; forcé à `kCMPersistentTrackID_Invalid` pour avoir vraiment 30 i/s (fichiers près de deux fois plus légers, estimation enfin juste). (1) l'analyse du son lisait le fichier (appel bloquant) sur les threads des tâches Swift, en nombre limité ; plusieurs analyses à la fois (plusieurs vidéos ouvertes) les occupaient tous et l'app se figeait. Elle tourne maintenant sur sa propre file. (2) L'analyse du son, finie après la fermeture de l'éditeur, relançait un export que personne n'annulait : une fois fermé, le modèle d'export n'en lance plus aucun.
+- Dans le sandbox de Claude Code, `xcodebuild test` ne peut pas tourner (écritures dans `~/Library/Developer` refusées, encodeur bloqué) : l'utilisateur lance `./scripts/test.sh` à la main. Claude vérifie le typage des tests avec `swiftc -typecheck` contre `build/Debug/VidSniper.swiftmodule`.
 
 ### Build (contraintes du sandbox de Claude Code)
 

@@ -41,9 +41,12 @@ Prérequis : Xcode, [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew ins
 xcodegen                    # génère VidSniper.xcodeproj
 xcodebuild                  # build Debug dans build/Debug/
 ./scripts/install.sh        # build Release, installe dans /Applications, supprime la version de dev
-./scripts/release.sh        # prépare dist/VidSniper-<version>.zip et la recette Homebrew
+./scripts/test.sh           # tous les tests (unitaires, export réel, traductions) ; demande ffmpeg
+./scripts/release.sh        # lance les tests, prépare dist/VidSniper-<version>.zip et la recette Homebrew
 ./scripts/release.sh --publish   # publie la Release GitHub et pousse la recette
 ```
+
+Tests : `./scripts/test.sh` (ou ⌘U dans Xcode pour les seuls tests unitaires, après `./scripts/make-fixtures.sh`). Les vidéos de test sont générées par ffmpeg (`brew install ffmpeg`) dans `build/fixtures` ; un vrai enregistrement de référence peut être déposé dans `VidSniperTests/Fixtures/reference.mov`. La GitHub Action ne lance pas les tests : les lancer avant de pousser un tag.
 
 Release automatique : pousser un tag (`git tag v0.2.0 && git push origin v0.2.0`), la GitHub Action `.github/workflows/release.yml` compile, publie la Release et met à jour la recette Homebrew.
 

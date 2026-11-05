@@ -11,6 +11,7 @@
 #   REPO=<compte>/<dépôt>  dépôt GitHub, si ce n'est pas celui par défaut
 #   VERSION=1.2.3          impose la version (écrite dans project.yml) ; utilisé par la GitHub Action
 #   SIGN_IDENTITY=-        signature ad hoc, sans certificat (GitHub Action) ; par défaut "Apple Development"
+#   SKIP_TESTS=1           ne lance pas ./scripts/test.sh (lancé sinon avant chaque version, sauf dans la CI)
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -18,6 +19,12 @@ cd "$(dirname "$0")/.."
 repo="${REPO:-Elliot67/vid-sniper}"
 publish=false
 [[ "${1:-}" == "--publish" ]] && publish=true
+
+# Tests avant chaque version (pas dans la GitHub Action, qui n'a ni ffmpeg ni les tests prévus pour).
+if [[ -z "${CI:-}" && -z "${SKIP_TESTS:-}" ]]; then
+    echo "→ Tests"
+    ./scripts/test.sh
+fi
 
 if [[ -n "${VERSION:-}" ]]; then
     sed -i '' -e "s/CFBundleShortVersionString: \".*\"/CFBundleShortVersionString: \"$VERSION\"/" project.yml
