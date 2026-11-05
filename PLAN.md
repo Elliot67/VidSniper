@@ -111,7 +111,7 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
   - Coller les quatre bords à la main passe aussi en plein écran (même comportement que le bouton).
   - En quittant le plein écran : retour à la zone précédente, sauf si elle touchait un bord de l'écran ; dans ce cas, zone par défaut centrée sur 60 % de l'écran.
   - En plein écran, glisser n'importe où retrace une nouvelle zone.
-- **Panneau toujours visible** : sous la zone, ou en bas de l'écran s'il n'y a pas de zone ou en plein écran. Il contient Plein écran, Micro, Son système, Annuler, Enregistrer (grisé sans zone). Curseur flèche au survol du panneau.
+- **Panneau toujours visible** : sous la zone, ou en bas de l'écran s'il n'y a pas de zone ou en plein écran. Il contient Plein écran, Micro, Son système, Annuler, Enregistrer (grisé sans zone). Curseur flèche au survol du panneau. Un clic dans un vide du panneau ne fait plus disparaître celui-ci (il commençait un tracé dont le relâchement n'arrivait jamais à la vue de sélection).
 - Entrée lance l'enregistrement. Une zone par écran au maximum, une seule active à la fois. La dernière zone est proposée par défaut.
 
 ### 2. Enregistrement
@@ -124,7 +124,7 @@ macOS (15+) demande périodiquement de confirmer qu'une app peut capturer l'écr
   - Poignée violette à quatre flèches au-dessus du coin haut gauche du cadre (à l'intérieur si la zone touche le haut de l'écran), masquée en plein écran.
   - Seule la position change (même taille, même écran), via `SCStream.updateConfiguration`, sans coupure. Marche pendant l'enregistrement et en pause.
   - La mini barre suit la zone en gardant sa position relative.
-  - Curseur main ouverte dès le survol (tracking area active même app en arrière-plan).
+  - Curseur : flèche. La main ouverte au survol clignotait avec la flèche (l'app est en arrière-plan pendant l'enregistrement et macOS remet la flèche à chaque mouvement) ; la propriété privée `SetsCursorInBackground` n'a pas suffi. Choix de l'utilisateur : la flèche si la main n'est pas fiable.
 - Fichiers dans `~/Library/Caches/VidSniper/Recordings/`, purgés au lancement au-delà de 24 h.
 
 ### 3. Éditeur (s'ouvre automatiquement à la fin)

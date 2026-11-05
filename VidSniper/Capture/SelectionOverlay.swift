@@ -225,8 +225,11 @@ final class SelectionView: NSView {
     // MARK: - Souris
 
     override func mouseDown(with event: NSEvent) {
-        rememberWindowedSelection()
         let point = convert(event.locationInWindow, from: nil)
+        // Clic dans un vide du panneau : SwiftUI le laisse remonter jusqu'ici. Sans ce garde-fou, il commençait
+        // un tracé qui masquait le panneau, et le relâchement (reçu par le panneau) ne le réaffichait jamais.
+        if let controls, !controls.isHidden, controls.frame.contains(point) { return }
+        rememberWindowedSelection()
         if let selection, let handle = Handle.allCases.first(where: { $0.hitRect(in: selection).contains(point) }) {
             drag = .resizing(handle, start: point, rect: selection)
         } else if let selection, !isFullScreen, selection.contains(point) {

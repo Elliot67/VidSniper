@@ -163,33 +163,11 @@ private final class GripView: NSView {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    // Pendant l'enregistrement, l'app est en arrière-plan : les cursor rects ne s'appliquent pas,
-    // on suit donc la souris avec une tracking area active en permanence.
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(
-            rect: bounds,
-            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect],
-            owner: self
-        ))
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        NSCursor.openHand.set()
-    }
-
-    override func mouseMoved(with event: NSEvent) {
-        if dragStart == nil { NSCursor.openHand.set() }
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        if dragStart == nil { NSCursor.arrow.set() }
-    }
+    // Pas de main au survol : l'app est en arrière-plan pendant l'enregistrement, macOS remet la flèche
+    // à chaque mouvement et la main clignotait. La flèche reste donc, comme sur le reste de la barre.
 
     override func mouseDown(with event: NSEvent) {
         dragStart = NSEvent.mouseLocation
-        NSCursor.closedHand.set()
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -200,7 +178,6 @@ private final class GripView: NSView {
 
     override func mouseUp(with event: NSEvent) {
         dragStart = nil
-        NSCursor.openHand.set()
         onDragEnded?()
     }
 
