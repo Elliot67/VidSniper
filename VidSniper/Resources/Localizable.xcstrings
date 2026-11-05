@@ -141,6 +141,16 @@
         }
       }
     },
+    "Balanced" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Équilibrée"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "fr" : {
@@ -207,6 +217,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Clics"
+          }
+        }
+      }
+    },
+    "Compression" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compression"
           }
         }
       }
@@ -761,12 +781,12 @@
         }
       }
     },
-    "Medium" : {
+    "Maximum" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Moyenne"
+            "value" : "Maximale"
           }
         }
       }
@@ -951,16 +971,6 @@
         }
       }
     },
-    "Quality" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualité"
-          }
-        }
-      }
-    },
     "Record" : {
       "localizations" : {
         "fr" : {
@@ -1071,12 +1081,32 @@
         }
       }
     },
+    "Resolution" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définition"
+          }
+        }
+      }
+    },
     "Resume" : {
       "localizations" : {
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Reprendre"
+          }
+        }
+      }
+    },
+    "Retina" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retina"
           }
         }
       }
@@ -1117,6 +1147,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enregistrer…"
+          }
+        }
+      }
+    },
+    "Screen" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran"
           }
         }
       }
@@ -1187,16 +1227,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Afficher toute la vidéo (⌘0)"
-          }
-        }
-      }
-    },
-    "Size" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taille"
           }
         }
       }
@@ -1417,6 +1447,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Il faut au moins ⌘, ⌥ ou ⌃ avec la touche."
+          }
+        }
+      }
+    },
+    "Very Light" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Très légère"
           }
         }
       }

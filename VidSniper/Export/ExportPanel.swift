@@ -9,22 +9,28 @@ struct ExportPanel: View {
     var body: some View {
         HStack(alignment: .center, spacing: Theme.spacing * 1.5) {
             VStack(alignment: .leading, spacing: 6) {
-                optionRow("Size") {
-                    ForEach(ExportSize.allCases) { size in
-                        OptionTile(
-                            title: size.label,
-                            weight: export.weight(size: size, quality: export.quality),
-                            isSelected: export.size == size
-                        ) {
-                            export.size = size
+                // Sans enregistrement Retina, une seule définition possible : pas de choix à montrer.
+                if export.hasScreenResolution {
+                    optionRow("Resolution") {
+                        ForEach(ExportResolution.allCases) { resolution in
+                            OptionTile(
+                                title: resolutionTitle(resolution),
+                                detail: export.plan(resolution: resolution, quality: export.quality)
+                                    .map { "\($0.width) × \($0.height)" },
+                                // Le poids n'est montré que pour la compression.
+                                weight: nil,
+                                isSelected: export.resolution == resolution
+                            ) {
+                                export.resolution = resolution
+                            }
                         }
                     }
                 }
-                optionRow("Quality") {
+                optionRow("Compression") {
                     ForEach(ExportQuality.allCases) { quality in
                         OptionTile(
                             title: quality.label,
-                            weight: export.weight(size: export.size, quality: quality),
+                            weight: export.weight(resolution: export.resolution, quality: quality),
                             isSelected: export.quality == quality
                         ) {
                             export.quality = quality
@@ -85,12 +91,19 @@ struct ExportPanel: View {
         )
     }
 
+    private func resolutionTitle(_ resolution: ExportResolution) -> String {
+        switch resolution {
+        case .full: String(localized: "Retina")
+        case .screen: String(localized: "Screen")
+        }
+    }
+
     private func optionRow<Content: View>(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) -> some View {
         HStack(spacing: 6) {
             Text(title)
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.textMuted)
-                .frame(width: 48, alignment: .leading)
+                .frame(width: 72, alignment: .leading)
             content()
         }
     }
@@ -196,6 +209,8 @@ struct ExportPanel: View {
 /// exporté, sinon estimé (≈).
 private struct OptionTile: View {
     let title: String
+    /// Ligne ajoutée avant le poids, ou à sa place (dimensions d'une définition).
+    var detail: String?
     let weight: (bytes: Int64, isEstimate: Bool)?
     let isSelected: Bool
     let action: () -> Void
@@ -227,8 +242,9 @@ private struct OptionTile: View {
     }
 
     private var weightText: String {
-        guard let weight else { return "–" }
+        guard let weight else { return detail ?? "–" }
         let size = ExportPanel.format(weight.bytes)
-        return weight.isEstimate ? "≈ \(size)" : size
+        let text = weight.isEstimate ? "≈ \(size)" : size
+        return detail.map { "\($0) · \(text)" } ?? text
     }
 }

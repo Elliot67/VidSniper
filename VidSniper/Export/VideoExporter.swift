@@ -153,7 +153,7 @@ private final class ExportJob: @unchecked Sendable {
                 AVVideoAverageBitRateKey: plan.videoBitrate,
                 AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
                 AVVideoExpectedSourceFrameRateKey: ExportPlan.frameRate,
-                AVVideoMaxKeyFrameIntervalKey: Int(ExportPlan.frameRate * 2),
+                AVVideoMaxKeyFrameIntervalKey: Int(ExportPlan.frameRate * ExportPlan.keyFrameInterval),
                 // Sans images B : encodage plus rapide, pour un fichier à peine plus lourd.
                 AVVideoAllowFrameReorderingKey: false,
             ],

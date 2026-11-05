@@ -10,6 +10,8 @@ struct ZoomablePreview<Content: View>: NSViewRepresentable {
     let range: ClosedRange<Double>
     /// Zoom qui ajuste le contenu à la zone, à chaque changement de taille.
     let onFitZoomChange: (Double) -> Void
+    /// Zoom recalculé quand la taille du contenu change (autre définition), pour garder le même cadrage.
+    let onZoomRescaled: (Double) -> Void
     /// Zoom choisi au pincement, à chaque étape du geste.
     let onPinch: (Double) -> Void
     @ViewBuilder let content: () -> Content
@@ -51,9 +53,10 @@ struct ZoomablePreview<Content: View>: NSViewRepresentable {
         (scrollView.documentView as? NSHostingView<Content>)?.rootView = content()
         let coordinator = context.coordinator
         coordinator.contentSize = contentSize
-        coordinator.zoom = zoom
+        coordinator.setRequestedZoom(zoom)
         coordinator.range = range
         coordinator.onFitZoomChange = onFitZoomChange
+        coordinator.onZoomRescaled = onZoomRescaled
         coordinator.onPinch = onPinch
         coordinator.apply()
     }
@@ -65,12 +68,23 @@ struct ZoomablePreview<Content: View>: NSViewRepresentable {
         var zoom: Double?
         var range: ClosedRange<Double> = 0.1...8
         var onFitZoomChange: ((Double) -> Void)?
+        var onZoomRescaled: ((Double) -> Void)?
         var onPinch: ((Double) -> Void)?
         private var isPinching = false
         private var reportedFitZoom: Double?
         /// Point visible au centre, en proportion du contenu, à garder quand la taille du contenu change
         /// (autre taille d'export).
         private var centerToRestore: CGPoint?
+        /// Zoom recalculé pas encore revenu de l'éditeur : l'ancien, encore reçu entre-temps, est ignoré.
+        private var pendingRescale: (from: Double, to: Double)?
+
+        func setRequestedZoom(_ requested: Double?) {
+            if let pending = pendingRescale {
+                if requested == pending.from { return }
+                pendingRescale = nil
+            }
+            zoom = requested
+        }
 
         /// Taille du contenu, bornes et zoom demandé appliqués à la vue défilante.
         func apply() {
@@ -81,6 +95,14 @@ struct ZoomablePreview<Content: View>: NSViewRepresentable {
                 if previousSize.width > 0, previousSize.height > 0 {
                     let visible = scrollView.contentView.bounds
                     centerToRestore = CGPoint(x: visible.midX / previousSize.width, y: visible.midY / previousSize.height)
+                    // Même taille à l'écran : la vidéo en Retina, deux fois plus grande, prend deux fois moins de zoom.
+                    if let zoom {
+                        let rescaled = zoom * previousSize.width / contentSize.width
+                        pendingRescale = (zoom, rescaled)
+                        self.zoom = rescaled
+                        let report = onZoomRescaled
+                        DispatchQueue.main.async { report?(rescaled) }
+                    }
                 }
                 documentView.setFrameSize(contentSize)
             }

@@ -15,9 +15,9 @@ final class ExportModel {
         case failed(String)
     }
 
-    var size: ExportSize {
+    var resolution: ExportResolution {
         didSet {
-            UserDefaults.standard.set(size.rawValue, forKey: "exportSize")
+            UserDefaults.standard.set(resolution.rawValue, forKey: "exportResolution")
             scheduleExport()
         }
     }
@@ -60,18 +60,32 @@ final class ExportModel {
 
     init(recording: RecordingResult) {
         let defaults = UserDefaults.standard
-        size = ExportSize(rawValue: defaults.double(forKey: "exportSize")) ?? .full
-        quality = ExportQuality(rawValue: defaults.string(forKey: "exportQuality") ?? "") ?? .medium
+        resolution = ExportResolution(rawValue: defaults.string(forKey: "exportResolution") ?? "") ?? .screen
+        quality = ExportQuality(rawValue: defaults.string(forKey: "exportQuality") ?? "") ?? .balanced
+        pixelsPerPoint = recording.pixelsPerPoint
         fileName = recording.url.deletingPathExtension().lastPathComponent + ".mp4"
     }
 
-    private var cacheKey: String {
-        cacheKey(size: size, quality: quality)
+    /// Pixels de la vidéo par point d'écran : 2 pour un enregistrement Retina, 1 pour une vidéo importée.
+    let pixelsPerPoint: Double
+
+    /// Le choix Retina / Écran n'a de sens que si la vidéo a plus de pixels que l'écran.
+    var hasScreenResolution: Bool {
+        pixelsPerPoint > 1
     }
 
-    private func cacheKey(size: ExportSize, quality: ExportQuality) -> String {
+    /// Définition réellement utilisée (toujours la pleine définition sans enregistrement Retina).
+    private var effectiveResolution: ExportResolution {
+        hasScreenResolution ? resolution : .full
+    }
+
+    private var cacheKey: String {
+        cacheKey(resolution: effectiveResolution, quality: quality)
+    }
+
+    private func cacheKey(resolution: ExportResolution, quality: ExportQuality) -> String {
         let volumes = volumes.map { "\($0.trackID):\($0.volume)" }.joined(separator: ",")
-        return "\(signature)|\(size.rawValue)|\(quality.rawValue)|\(volumes)"
+        return "\(signature)|\(resolution.rawValue)|\(quality.rawValue)|\(volumes)"
     }
 
     /// Chaque export a son propre dossier, pour garder le même nom de fichier dans tous les cas.
@@ -83,21 +97,29 @@ final class ExportModel {
     }
 
     var plan: ExportPlan? {
-        plan(size: size, quality: quality)
+        plan(resolution: effectiveResolution, quality: quality)
     }
 
-    private func plan(size: ExportSize, quality: ExportQuality) -> ExportPlan? {
+    func plan(resolution: ExportResolution, quality: ExportQuality) -> ExportPlan? {
         guard videoSize != .zero, duration > 0 else { return nil }
-        return ExportPlan(sourceSize: videoSize, duration: duration, hasAudio: hasAudio, size: size, quality: quality)
+        return ExportPlan(
+            sourceSize: videoSize,
+            pixelsPerPoint: pixelsPerPoint,
+            duration: duration,
+            hasAudio: hasAudio,
+            resolution: resolution,
+            quality: quality
+        )
     }
 
     /// Poids d'un réglage pour le montage actuel : réel s'il a déjà été exporté pendant la session,
     /// sinon estimé (corrigé d'après le dernier export réel).
-    func weight(size: ExportSize, quality: ExportQuality) -> (bytes: Int64, isEstimate: Bool)? {
-        if let cached = cache[cacheKey(size: size, quality: quality)] {
+    func weight(resolution: ExportResolution, quality: ExportQuality) -> (bytes: Int64, isEstimate: Bool)? {
+        let resolution = hasScreenResolution ? resolution : .full
+        if let cached = cache[cacheKey(resolution: resolution, quality: quality)] {
             return (cached.bytes, false)
         }
-        guard let plan = plan(size: size, quality: quality) else { return nil }
+        guard let plan = plan(resolution: resolution, quality: quality) else { return nil }
         return (Int64(Double(plan.estimatedBytes) * estimateCorrection), true)
     }
 

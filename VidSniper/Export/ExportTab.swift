@@ -126,6 +126,7 @@ private struct ExportPreview: View {
             zoom: document.previewZoom,
             range: EditorDocument.previewZoomRange,
             onFitZoomChange: { document.previewFitZoom = $0 },
+            onZoomRescaled: { document.previewZoom = $0 },
             onPinch: { document.setPreviewZoom($0) }
         ) {
             players
